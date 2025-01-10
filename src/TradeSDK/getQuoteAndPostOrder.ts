@@ -8,6 +8,8 @@ import {
 import { ethers } from "ethers";
 import { confirm, getPk, jsonReplacer } from "../common/utils";
 
+const PARTNER_FEE_ADDRESS = "0x79063d9173C09887d536924E2F6eADbaBAc099f5";
+
 export async function run() {
   // Set up provider and wallet
   const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
@@ -30,6 +32,12 @@ export async function run() {
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
     slippageBps: 50,
+
+    // Optionally add a partner fee and a recipient
+    partnerFee: {
+      bps: 100,
+      recipient: PARTNER_FEE_ADDRESS,
+    },
   };
 
   // Post the order
