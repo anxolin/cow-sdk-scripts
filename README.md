@@ -1,6 +1,6 @@
-# Swap-n-Bridge
+# CoW SDK - Scripts
 
-A TypeScript application for interacting with CoW Protocol for cross-chain swaps.
+A TypeScript application with scripts for interacting with CoW Protocol using the SDK.
 
 ## Prerequisites
 
