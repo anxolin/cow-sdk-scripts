@@ -22,7 +22,7 @@ cp .env.example .env
 Run the application in dev mode:
 
 ```bash
-yarn de
+yarn dev
 ```
 
 
