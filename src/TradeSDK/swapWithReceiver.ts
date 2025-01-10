@@ -6,7 +6,7 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getPk } from "../common";
+import { getPk } from "../common/utils";
 
 const RECEIVER_ADDRESS = "0x79063d9173C09887d536924E2F6eADbaBAc099f5";
 

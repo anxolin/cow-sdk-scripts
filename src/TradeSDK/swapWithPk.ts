@@ -5,7 +5,7 @@ import {
   TradeParameters,
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
-import { getPk } from "../common";
+import { getPk } from "../common/utils";
 import { ethers } from "ethers";
 
 export async function run() {

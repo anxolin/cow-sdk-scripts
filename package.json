@@ -10,6 +10,7 @@
     "watch": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"
   },
   "devDependencies": {
+    "@types/inquirer": "^9.0.7",
     "@types/node": "^22.10.5",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
@@ -17,7 +18,8 @@
   },
   "dependencies": {
     "@cowprotocol/cow-sdk": "5.10.0-RC.0",
+    "dotenv": "^16.4.5",
     "ethers": "^5.7.2",
-    "dotenv": "^16.4.5"
+    "inquirer": "^12.3.0"
   }
 }

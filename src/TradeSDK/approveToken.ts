@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { getPk } from "../common";
+import { getPk } from "../common/utils";
 import { COW_VAULT_RELAYER_CONTRACT, WETH_ADDRESS } from "../const";
 
 const MAX_ALLOWANCE = ethers.constants.MaxUint256;

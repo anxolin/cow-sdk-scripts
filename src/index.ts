@@ -1,24 +1,31 @@
 import { run as approveToken } from "./TradeSDK/approveToken";
 import dotenv from "dotenv";
-import { run as tradeWithPk } from "./TradeSDK/swapWithPk";
+import { run as swapWithPk } from "./TradeSDK/swapWithPk";
 import { run as swapBuy } from "./TradeSDK/swapBuy";
 import { run as swapSell } from "./TradeSDK/swapSell";
 import { run as swapWithReceiver } from "./TradeSDK/swapWithReceiver";
 import { run as swapPartialFill } from "./TradeSDK/swapPartialFill";
 import { run as swapWithPartnerFee } from "./TradeSDK/swapWithPartnerFee";
-
+import { run as swapInBarn } from "./TradeSDK/swapInBarn";
+import { run as getQuoteAndPostOrder } from "./TradeSDK/getQuoteAndPostOrder";
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
 const JOBS: (() => Promise<unknown>)[] = [
-  // approveToken,
-  // tradeWithPk, // TODO: Doesn't work passing just the PK
+  // approveToken, // Required to approve the token before trading
+  // getQuoteAndPostOrder, // Simplest way to integrate!
+  //
+  // swap
+  // swapWithPk, // FIXME: Doesn't work passing just the PK
   // swapSell,
   // swapBuy,
   // tradeWithRecipient,
   // swapPartialFill,
   // swapWithReceiver,
-  swapWithPartnerFee,
+  // swapWithPartnerFee, // FIXME: It doesn't work
+  // swapInBarn, // FIXME: It doesn't work
+  //
+  //
 ];
 
 async function main() {

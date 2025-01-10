@@ -6,7 +6,7 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getPk } from "../common";
+import { getPk } from "../common/utils";
 
 export async function run() {
   // Set up provider and wallet
