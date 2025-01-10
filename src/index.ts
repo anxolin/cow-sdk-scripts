@@ -9,6 +9,9 @@ import { run as swapWithPartnerFee } from "./TradeSDK/swapWithPartnerFee";
 import { run as swapInBarn } from "./TradeSDK/swapInBarn";
 import { run as getQuoteAndPostOrder } from "./TradeSDK/getQuoteAndPostOrder";
 import { run as swapSellWithValidFor } from "./TradeSDK/swapSellWithValidFor";
+import { run as getQuoteAndPreSign } from "./TradeSDK/getQuoteAndPreSign";
+import { run as preSign } from "./TradeSDK/preSign";
+
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
@@ -26,6 +29,9 @@ const JOBS: (() => Promise<unknown>)[] = [
   // swapWithPartnerFee, // FIXME: It doesn't work
   // swapInBarn, // FIXME: It doesn't work
   // swapSellWithValidFor, // TODO: Why we can only place order to execute in max 3 hours? Is there a backend limit?
+  //
+  // getQuoteAndPreSign,
+  // preSign, // FIXME: It creates an EIP-712 signature, not a pre-sign
 ];
 
 async function main() {

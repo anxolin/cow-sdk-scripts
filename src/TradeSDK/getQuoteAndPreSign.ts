@@ -4,9 +4,11 @@ import {
   OrderKind,
   TradeParameters,
   TradingSdk,
+  SwapAdvancedSettings,
+  SigningScheme,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getPk } from "../common/utils";
+import { confirm, getPk } from "../common/utils";
 
 export async function run() {
   // Set up provider and wallet
@@ -21,7 +23,7 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log("Swap with 2 hours expiration");
+  console.log("Presign");
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
     amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
@@ -30,13 +32,28 @@ export async function run() {
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
     slippageBps: 50,
-    validFor: 60 * 60 * 2, // Expire in 2 hours
+  };
+
+  const advancedParameters: SwapAdvancedSettings = {
+    quoteRequest: {
+      // Specify the signing scheme
+      signingScheme: SigningScheme.PRESIGN,
+    },
   };
 
   // Post the order
-  const orderId = await sdk.postSwapOrder(parameters);
-
-  console.log(
-    `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+  const { quoteResults, postSwapOrderFromQuote } = await sdk.getQuote(
+    parameters,
+    advancedParameters
   );
+
+  const buyAmount = quoteResults.amountsAndCosts.afterSlippage.buyAmount;
+  const confirmed = await confirm(`You will get at least: ${buyAmount}, ok?`);
+  if (confirmed) {
+    const orderId = await postSwapOrderFromQuote();
+
+    console.log(
+      `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+    );
+  }
 }
