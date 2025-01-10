@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import { APP_CODE, COW_ADDRESS, WETH_ADDRESS } from "../const";
 import {
   SupportedChainId,
   OrderKind,
@@ -6,7 +6,7 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getPk } from "./common";
+import { getPk } from "../common";
 
 export async function run() {
   // Set up provider and wallet
@@ -16,23 +16,27 @@ export async function run() {
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
     chainId: SupportedChainId.SEPOLIA,
-    signer: wallet,
-    appCode: "swap-n-bridge",
+    signer: wallet, // Use a signer
+    appCode: APP_CODE,
   });
 
   // Define trade parameters
-  //  Buy 0.12 COW with ETH
+  console.log("Swap with partial fill");
   const parameters: TradeParameters = {
-    kind: OrderKind.BUY,
-    sellToken: "0xfff9976782d46cc05630d1f6ebab18b2324d6b14", // WETH
+    kind: OrderKind.SELL, // Sell
+    amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
+    sellToken: WETH_ADDRESS,
     sellTokenDecimals: 18,
-    buyToken: "0x0625afb445c3b6b7b929342a04a22599fd5dbb59", // COW
+    buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
-    amount: "120000000000000000",
+    slippageBps: 50,
+    partiallyFillable: true,
   };
 
   // Post the order
   const orderId = await sdk.postSwapOrder(parameters);
 
-  console.log("Order created, id: ", orderId);
+  console.log(
+    `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+  );
 }
