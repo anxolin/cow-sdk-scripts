@@ -1,1 +1,1 @@
-console.log("TypeScript project initialized!");
+console.log("Swap and bridge");
