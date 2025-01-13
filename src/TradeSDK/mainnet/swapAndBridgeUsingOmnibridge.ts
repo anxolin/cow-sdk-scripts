@@ -1,4 +1,3 @@
-import * as weiroll from "@weiroll/weiroll.js";
 import { SigningScheme } from "@cowprotocol/contracts";
 
 import { mainnet, APP_CODE } from "../../const";
@@ -13,7 +12,7 @@ import {
 import { ethers } from "ethers";
 
 import { MetadataApi } from "@cowprotocol/app-data";
-import { confirm, getWallet, printQuote } from "../../common/utils";
+import { confirm, getWallet } from "../../common/utils";
 import { getBridgeAvailableBalanceTx } from "../../omnibridge/createBridgeTx";
 import { BaseTransaction } from "../../types";
 

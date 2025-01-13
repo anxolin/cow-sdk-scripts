@@ -1,8 +1,20 @@
-import * as weiroll from "@weiroll/weiroll.js";
-
 import { BaseTransaction } from "../types";
 import { ethers } from "ethers";
-import { CommandFlags } from "@weiroll/weiroll.js/dist/planner";
+import {
+  Planner as WeirollPlanner,
+  Contract as WeirollContract,
+} from "@weiroll/weiroll.js";
+
+// TODO: Duplicated! Move to a shared location
+enum CommandFlags {
+  DELEGATECALL = 0,
+  CALL = 1,
+  STATICCALL = 2,
+  CALL_WITH_VALUE = 3,
+  CALLTYPE_MASK = 3,
+  EXTENDED_COMMAND = 64,
+  TUPLE_RETURN = 128,
+}
 
 // TODO: Move to a shared location
 export const WEIROLL_ADDRESS = "0x9585c3062Df1C247d5E373Cfca9167F7dC2b5963";
@@ -55,10 +67,10 @@ export async function getBridgeAvailableBalanceTx({
   bridgedToken,
 }: CreateBridgeTxArgs): Promise<BaseTransaction> {
   // TODO: Use cow-shed and weiroll to create a bridge transaction
-  const planner = new weiroll.Planner();
+  const planner = new WeirollPlanner();
 
   // Create bridged token contract
-  const bridgedTokenContract = weiroll.Contract.createContract(
+  const bridgedTokenContract = WeirollContract.createContract(
     new ethers.Contract(bridgedToken, ERC20_BALANCE_OF_ABI),
     CommandFlags.STATICCALL
   );
@@ -69,7 +81,7 @@ export async function getBridgeAvailableBalanceTx({
   );
 
   // Create omnibridge contract
-  const omnibridgeContract = weiroll.Contract.createContract(
+  const omnibridgeContract = WeirollContract.createContract(
     new ethers.Contract(
       OMINIBRIDGE_GNOSIS_CHAIN_ADDRESS,
       OMNIBRIDGE_RELAY_TOKENS_ABI
@@ -99,7 +111,7 @@ export async function getBridgeAvailableBalanceTx({
   };
 }
 
-function getWeirollCalldata(planner: weiroll.Planner) {
+function getWeirollCalldata(planner: WeirollPlanner) {
   const { commands, state } = planner.plan();
   const weirollInterface = new ethers.utils.Interface(WEIROLL_ABI);
 
