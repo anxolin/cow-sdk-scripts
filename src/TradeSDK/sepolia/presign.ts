@@ -9,12 +9,10 @@ import {
   SigningScheme,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { confirm, getPk, jsonReplacer } from "../../common/utils";
+import { getExplorerUrl, getWallet, jsonReplacer } from "../../common/utils";
 
 export async function run() {
-  // Set up provider and wallet
-  const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
-  const wallet = new ethers.Wallet(getPk(), provider);
+  const wallet = await getWallet(SupportedChainId.SEPOLIA);
 
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
@@ -81,6 +79,8 @@ export async function run() {
   console.log("\n4. Wait for the tx to be mined");
   const receipt = await tx.wait(1);
   console.log(
-    `Transaction confirmed in block: ${receipt.blockNumber}. See https://sepolia.etherscan.io/tx/${tx.hash}`
+    `Transaction confirmed in block: ${
+      receipt.blockNumber
+    }. See ${getExplorerUrl(SupportedChainId.SEPOLIA, tx.hash)}`
   );
 }

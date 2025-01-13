@@ -9,12 +9,10 @@ import {
   SigningScheme,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { confirm, getPk } from "../../common/utils";
+import { confirm, getWallet } from "../../common/utils";
 
 export async function run() {
-  // Set up provider and wallet
-  const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
-  const wallet = new ethers.Wallet(getPk(), provider);
+  const wallet = await getWallet(SupportedChainId.SEPOLIA);
 
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
@@ -49,7 +47,9 @@ export async function run() {
   );
 
   const buyAmount = quoteResults.amountsAndCosts.afterSlippage.buyAmount;
-  const confirmed = await confirm(`You will get at least: ${buyAmount}, ok?`);
+  const confirmed = await confirm(
+    `You will get at least ${buyAmount} COW, ok?`
+  );
   if (confirmed) {
     const orderId = await postSwapOrderFromQuote();
 

@@ -7,14 +7,17 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { confirm, getPk, jsonReplacer } from "../../common/utils";
+import {
+  confirm,
+  getWallet,
+  jsonReplacer,
+  printQuote,
+} from "../../common/utils";
 
 const PARTNER_FEE_ADDRESS = "0x79063d9173C09887d536924E2F6eADbaBAc099f5";
 
 export async function run() {
-  // Set up provider and wallet
-  const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
-  const wallet = new ethers.Wallet(getPk(), provider);
+  const wallet = await getWallet(SupportedChainId.SEPOLIA);
 
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
@@ -46,32 +49,12 @@ export async function run() {
     parameters
   );
 
-  console.log(
-    "\n🤝 Quote: ",
-    JSON.stringify(quoteResults.quoteResponse, jsonReplacer, 2)
-  );
-  console.log(
-    "\n💰 Amounts and costs: ",
-    JSON.stringify(quoteResults.amountsAndCosts, jsonReplacer, 2)
-  );
-  console.log(
-    "\n💿 App Data: ",
-    JSON.stringify(quoteResults.appDataInfo, jsonReplacer, 2)
-  );
-
-  console.log(
-    "\n✍️ Order to sign: ",
-    JSON.stringify(quoteResults.orderToSign, jsonReplacer, 2)
-  );
-
-  console.log(
-    "\n📝 Order Typed Data: ",
-    JSON.stringify(quoteResults.orderTypedData, jsonReplacer, 2)
-  );
-
+  printQuote(quoteResults);
   const buyAmount = quoteResults.amountsAndCosts.afterSlippage.buyAmount;
 
-  const confirmed = await confirm(`You will get at least: ${buyAmount}, ok?`);
+  const confirmed = await confirm(
+    `You will get at least ${buyAmount} COW. ok?`
+  );
   if (confirmed) {
     const orderId = await postSwapOrderFromQuote();
 

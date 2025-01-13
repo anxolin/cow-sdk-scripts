@@ -2,4 +2,5 @@ export const APP_CODE = "swap-n-bridge";
 export const NATIVE_CURRENCY_ADDRESS =
   "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
-// export const COW_SETTLEMENT_CONTRACT = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41";
+export const COW_VAULT_RELAYER_CONTRACT =
+  "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110";

@@ -1,6 +1,5 @@
-import { sepolia, APP_CODE } from "../../const";
-const { WETH_ADDRESS } = sepolia;
-
+import { mainnet, APP_CODE } from "../../const";
+const { DAI_ADDRESS, USDC_ADDRESS } = mainnet;
 import {
   SupportedChainId,
   OrderKind,
@@ -8,17 +7,16 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getPk } from "../../common/utils";
+
 import { MetadataApi } from "@cowprotocol/app-data";
+import { confirm, getWallet, printQuote } from "../../common/utils";
 
 export async function run() {
-  // Set up provider and wallet
-  const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
-  const wallet = new ethers.Wallet(getPk(), provider);
+  const wallet = await getWallet(SupportedChainId.MAINNET);
 
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
-    chainId: SupportedChainId.SEPOLIA,
+    chainId: SupportedChainId.MAINNET,
     signer: wallet, // Use a signer
     appCode: APP_CODE,
   });
@@ -28,13 +26,13 @@ export async function run() {
     "Buy 1 DAI using USDC and bridge to Gnosis Chain using Omnibridge"
   );
   const parameters: TradeParameters = {
-    kind: OrderKind.SELL, // Sell
-    amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
-    sellToken: WETH_ADDRESS,
+    kind: OrderKind.BUY, // Buy
+    amount: ethers.utils.parseUnits("1", 18).toString(), // 1 DAI
+    sellToken: USDC_ADDRESS,
     sellTokenDecimals: 18,
-    buyToken: COW_ADDRESS, // For COW
+    buyToken: DAI_ADDRESS, // For DAI
     buyTokenDecimals: 18,
-    slippageBps: 50,
+    partiallyFillable: false, // Fill or Kill
   };
 
   const metadataApi = new MetadataApi();
@@ -43,18 +41,34 @@ export async function run() {
     metadata: {
       hooks: {
         post: [
-          {
-            callData: "0x",
-            gasLimit: "123456",
-            target: "0x",
-          },
+          // {
+          //   callData: "0x",
+          //   gasLimit: "1",
+          //   target: "0x",
+          // },
         ],
       },
     },
   });
 
+  const quote = await sdk.getQuote(parameters /*, { appData }*/);
+  const { postSwapOrderFromQuote, quoteResults } = quote;
+
+  const maxSellAmount = quoteResults.amountsAndCosts.afterSlippage.sellAmount;
+  const maxSellAmountFormatted = ethers.utils.formatUnits(maxSellAmount, 6);
+
+  console.log(`You will get pay at most: ${maxSellAmountFormatted} USDC. ok?`);
+
+  const confirmed = await confirm(
+    `You will sell at most ${maxSellAmountFormatted} USDC. ok?`
+  );
+  if (!confirmed) {
+    console.log("🚫 Aborted");
+    return;
+  }
+
   // Post the order
-  const orderId = await sdk.postSwapOrder(parameters, { appData });
+  const orderId = await postSwapOrderFromQuote();
 
   // Print the order creation
   console.log(

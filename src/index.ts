@@ -1,4 +1,4 @@
-import { run as approveToken } from "./TradeSDK/sepolia/approveToken";
+import { run as approveTokenSepolia } from "./TradeSDK/sepolia/approveTokenSepolia";
 import dotenv from "dotenv";
 import { run as swapWithPk } from "./TradeSDK/sepolia/swapWithPk";
 import { run as swapBuy } from "./TradeSDK/sepolia/swapBuy";
@@ -16,11 +16,12 @@ import { run as swapSellNative } from "./TradeSDK/sepolia/swapSellNative";
 import { run as nativeSell } from "./TradeSDK/sepolia/nativeSell";
 import { run as swapWithAppData } from "./TradeSDK/sepolia/swapWithAppData";
 import { run as swapAndBridgeUsingOmnibridge } from "./TradeSDK/mainnet/swapAndBridgeUsingOmnibridge";
+import { run as approveTokenMainnet } from "./TradeSDK/mainnet/approveTokenMainnet";
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
 const JOBS: (() => Promise<unknown>)[] = [
-  // approveToken, // Required to approve the token before trading
+  // approveTokenSepolia, // Required to approve the token before trading
   // getQuoteAndPostOrder, // Simplest way to integrate!
   //
   // swapWithPk, // FIXME: Doesn't work passing just the PK
@@ -43,6 +44,7 @@ const JOBS: (() => Promise<unknown>)[] = [
   //
   // nativeSell, // FIXME: Throws error creating the eth flow order. Doesn't recognize 'gas' property - I believe expects 'gasLimit')
   //
+  // approveTokenMainnet,
   swapAndBridgeUsingOmnibridge,
 ];
 
