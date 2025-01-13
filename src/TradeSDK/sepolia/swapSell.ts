@@ -1,4 +1,5 @@
-import { APP_CODE, COW_ADDRESS, WETH_ADDRESS } from "../const";
+import { sepolia, APP_CODE } from "../../const";
+const { WETH_ADDRESS, COW_ADDRESS } = sepolia;
 import {
   SupportedChainId,
   OrderKind,
@@ -6,7 +7,7 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getPk } from "../common/utils";
+import { getPk } from "../../common/utils";
 
 export async function run() {
   // Set up provider and wallet
@@ -21,13 +22,13 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log("Swap Buy 100 COW with WETH (0.5% slippage)");
+  console.log("Swap Sell 0.1 WETH for COW (0.5% slippage)");
   const parameters: TradeParameters = {
-    kind: OrderKind.BUY, // Buy
-    amount: ethers.utils.parseUnits("100", 18).toString(), // 100 COW
-    sellToken: WETH_ADDRESS, // With WETH
+    kind: OrderKind.SELL, // Sell
+    amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
+    sellToken: WETH_ADDRESS,
     sellTokenDecimals: 18,
-    buyToken: COW_ADDRESS,
+    buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
     slippageBps: 50,
   };

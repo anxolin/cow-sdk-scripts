@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
-import { getPk } from "../common/utils";
-import { COW_VAULT_RELAYER_CONTRACT, WETH_ADDRESS } from "../const";
+import { getPk } from "../../common/utils";
+import { sepolia } from "../../const";
+const { WETH_ADDRESS, COW_VAULT_RELAYER_CONTRACT } = sepolia;
 
 const MAX_ALLOWANCE = ethers.constants.MaxUint256;
 const WETH_ABI = [

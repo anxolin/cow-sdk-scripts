@@ -1,11 +1,6 @@
-export const APP_CODE = "swap-n-bridge";
-
-// export const COW_SETTLEMENT_CONTRACT = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41";
-
 export const COW_VAULT_RELAYER_CONTRACT =
   "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110";
 
 // Sepolia addresses
 export const WETH_ADDRESS = "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14";
 export const COW_ADDRESS = "0x0625aFB445C3B6B7B929342a04A22599fd5dBB59";
-export const NATIVE_CURRENCY_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";

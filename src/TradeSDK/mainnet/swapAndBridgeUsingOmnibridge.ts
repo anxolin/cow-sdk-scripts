@@ -1,4 +1,6 @@
-import { APP_CODE, COW_ADDRESS, WETH_ADDRESS } from "../const";
+import { sepolia, APP_CODE } from "../../const";
+const { WETH_ADDRESS } = sepolia;
+
 import {
   SupportedChainId,
   OrderKind,
@@ -6,7 +8,7 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getPk } from "../common/utils";
+import { getPk } from "../../common/utils";
 import { MetadataApi } from "@cowprotocol/app-data";
 
 export async function run() {
@@ -22,7 +24,9 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log("Swap Sell 0.1 WETH for COW (0.5% slippage)");
+  console.log(
+    "Buy 1 DAI using USDC and bridge to Gnosis Chain using Omnibridge"
+  );
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
     amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
@@ -37,10 +41,14 @@ export async function run() {
   const appData = await metadataApi.generateAppDataDoc({
     appCode: APP_CODE,
     metadata: {
-      utm: {
-        utmSource: "AnxoTest",
-        utmMedium: "script",
-        utmCampaign: "@anxolin/cow-sdk-scripts",
+      hooks: {
+        post: [
+          {
+            callData: "0x",
+            gasLimit: "123456",
+            target: "0x",
+          },
+        ],
       },
     },
   });
@@ -48,7 +56,19 @@ export async function run() {
   // Post the order
   const orderId = await sdk.postSwapOrder(parameters, { appData });
 
+  // Print the order creation
   console.log(
-    `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+    `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`
   );
+
+  // Wait for the bridge start
+  console.log("🕣 Waiting for the bridge to start...");
+  console.log("🔗 Omnibridge link: <URL>");
+  // TODO: Implement
+
+  // Wait for the bridging to be completed
+  console.log("🕣 Waiting for the bridging to be completed...");
+  // TODO: Implement
+
+  console.log("🎉 The 1 DAI you bought is now available in Gnosis Chain");
 }

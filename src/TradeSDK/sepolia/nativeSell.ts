@@ -1,9 +1,5 @@
-import {
-  APP_CODE,
-  COW_ADDRESS,
-  NATIVE_CURRENCY_ADDRESS,
-  WETH_ADDRESS,
-} from "../const";
+import { sepolia, APP_CODE, NATIVE_CURRENCY_ADDRESS } from "../../const";
+const { COW_ADDRESS } = sepolia;
 import {
   SupportedChainId,
   OrderKind,
@@ -11,7 +7,7 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getPk } from "../common/utils";
+import { getPk } from "../../common/utils";
 
 export async function run() {
   // Set up provider and wallet
@@ -26,7 +22,7 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log("Swap Sell 0.1 Ether for COW (use ETH flow under the hood)");
+  console.log("Eth Flow: Sell 0.1 Ether for COW");
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
     amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 Ether
@@ -38,7 +34,7 @@ export async function run() {
   };
 
   // Post the order
-  const orderId = await sdk.postSwapOrder(parameters);
+  const orderId = await sdk.postSellNativeCurrencyOrder(parameters);
 
   console.log(
     `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`

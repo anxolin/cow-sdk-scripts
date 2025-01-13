@@ -1,4 +1,5 @@
-import { APP_CODE, COW_ADDRESS, WETH_ADDRESS } from "../const";
+import { sepolia, APP_CODE } from "../../const";
+const { WETH_ADDRESS, COW_ADDRESS } = sepolia;
 import {
   SupportedChainId,
   OrderKind,
@@ -8,7 +9,7 @@ import {
   SigningScheme,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { confirm, getPk, jsonReplacer } from "../common/utils";
+import { confirm, getPk, jsonReplacer } from "../../common/utils";
 
 export async function run() {
   // Set up provider and wallet

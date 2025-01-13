@@ -1,21 +1,21 @@
-import { run as approveToken } from "./TradeSDK/approveToken";
+import { run as approveToken } from "./TradeSDK/sepolia/approveToken";
 import dotenv from "dotenv";
-import { run as swapWithPk } from "./TradeSDK/swapWithPk";
-import { run as swapBuy } from "./TradeSDK/swapBuy";
-import { run as swapSell } from "./TradeSDK/swapSell";
-import { run as swapWithReceiver } from "./TradeSDK/swapWithReceiver";
-import { run as swapPartialFill } from "./TradeSDK/swapPartialFill";
-import { run as swapWithPartnerFee } from "./TradeSDK/swapWithPartnerFee";
-import { run as swapInBarn } from "./TradeSDK/swapInBarn";
-import { run as getQuoteAndPostOrder } from "./TradeSDK/getQuoteAndPostOrder";
-import { run as swapSellWithValidFor } from "./TradeSDK/swapSellWithValidFor";
-import { run as getQuoteAndPreSign } from "./TradeSDK/getQuoteAndPreSign";
-import { run as preSign } from "./TradeSDK/presign";
-import { run as limitSell } from "./TradeSDK/limitSell";
-import { run as swapSellNative } from "./TradeSDK/swapSellNative";
-import { run as nativeSell } from "./TradeSDK/nativeSell";
-import { run as swapWithAppData } from "./TradeSDK/swapWithAppData";
-
+import { run as swapWithPk } from "./TradeSDK/sepolia/swapWithPk";
+import { run as swapBuy } from "./TradeSDK/sepolia/swapBuy";
+import { run as swapSell } from "./TradeSDK/sepolia/swapSell";
+import { run as swapWithReceiver } from "./TradeSDK/sepolia/swapWithReceiver";
+import { run as swapPartialFill } from "./TradeSDK/sepolia/swapPartialFill";
+import { run as swapWithPartnerFee } from "./TradeSDK/sepolia/swapWithPartnerFee";
+import { run as swapInBarn } from "./TradeSDK/sepolia/swapInBarn";
+import { run as getQuoteAndPostOrder } from "./TradeSDK/sepolia/getQuoteAndPostOrder";
+import { run as swapSellWithValidFor } from "./TradeSDK/sepolia/swapSellWithValidFor";
+import { run as getQuoteAndPreSign } from "./TradeSDK/sepolia/getQuoteAndPreSign";
+import { run as preSign } from "./TradeSDK/sepolia/presign";
+import { run as limitSell } from "./TradeSDK/sepolia/limitSell";
+import { run as swapSellNative } from "./TradeSDK/sepolia/swapSellNative";
+import { run as nativeSell } from "./TradeSDK/sepolia/nativeSell";
+import { run as swapWithAppData } from "./TradeSDK/sepolia/swapWithAppData";
+import { run as swapAndBridgeUsingOmnibridge } from "./TradeSDK/mainnet/swapAndBridgeUsingOmnibridge";
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
@@ -34,7 +34,7 @@ const JOBS: (() => Promise<unknown>)[] = [
   // swapWithPartnerFee, // FIXME: It doesn't work
   // swapInBarn, // FIXME: It doesn't work
   // swapSellWithValidFor, // TODO: Why we can only place order to execute in max 3 hours? Is there a backend limit?
-  swapWithAppData,
+  // swapWithAppData,
   //
   // getQuoteAndPreSign,
   // preSign, // FIXME: It creates an EIP-712 signature, not a pre-sign
@@ -42,6 +42,8 @@ const JOBS: (() => Promise<unknown>)[] = [
   // limitSell,
   //
   // nativeSell, // FIXME: Throws error creating the eth flow order. Doesn't recognize 'gas' property - I believe expects 'gasLimit')
+  //
+  swapAndBridgeUsingOmnibridge,
 ];
 
 async function main() {
