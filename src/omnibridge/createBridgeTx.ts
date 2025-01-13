@@ -49,7 +49,7 @@ export interface CreateBridgeTxArgs {
   bridgedToken: string;
 }
 
-export async function createBridgeTx({
+export async function getBridgeAvailableBalanceTx({
   owner,
   cowShedProxy,
   bridgedToken,

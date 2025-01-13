@@ -14,7 +14,7 @@ import { ethers } from "ethers";
 
 import { MetadataApi } from "@cowprotocol/app-data";
 import { confirm, getWallet, printQuote } from "../../common/utils";
-import { createBridgeTx } from "../../omnibridge/createBridgeTx";
+import { getBridgeAvailableBalanceTx } from "../../omnibridge/createBridgeTx";
 import { BaseTransaction } from "../../types";
 
 export async function run() {
@@ -33,8 +33,11 @@ export async function run() {
     "Buy 1 DAI using USDC and bridge to Gnosis Chain using Omnibridge"
   );
 
-  const { cowShedAccount, authenticatedBridgeTx, gasLimit } =
-    await getCowShedDetails(chainId, wallet);
+  const {
+    cowShedAccount,
+    bridgeTx: authenticatedBridgeTx,
+    gasLimit,
+  } = await getAuthenticatedBridgeTx(chainId, wallet);
 
   const parameters: TradeParameters = {
     kind: OrderKind.BUY, // Buy
@@ -111,12 +114,12 @@ export function getCowShedDeadline(): bigint {
 }
 
 // TODO: Move to a shared location
-async function getCowShedDetails(
+async function getAuthenticatedBridgeTx(
   chainId: SupportedChainId,
   wallet: ethers.Wallet
 ): Promise<{
   cowShedAccount: string;
-  authenticatedBridgeTx: BaseTransaction;
+  bridgeTx: BaseTransaction;
   gasLimit: bigint;
 }> {
   // Get the cow-shed for the wallet
@@ -127,26 +130,27 @@ async function getCowShedDetails(
     `CoW-shed will be the receiver of the SWAP, who will initiate the bridging. CoW-shed=${cowShedAccount}`
   );
 
-  // Get raw transaction to bridge all DAI from cow-shed using omnibridge
-  const bridgeTx = await createBridgeTx({
+  // Get raw transaction to bridge all available DAI from cow-shed using OmniBridge
+  const bridgeAvailableBalanceTx = await getBridgeAvailableBalanceTx({
     bridgedToken: DAI_ADDRESS,
     owner: wallet.address,
     cowShedProxy: cowShedAccount,
   });
 
-  // Sign the bridge transaction
+  // Prepare the calls for the cow-shed
   const calls = [
     {
-      callData: bridgeTx.callData,
-      target: bridgeTx.to,
-      value: bridgeTx.value,
-      isDelegateCall: !!bridgeTx.isDelegateCall,
+      callData: bridgeAvailableBalanceTx.callData,
+      target: bridgeAvailableBalanceTx.to,
+      value: bridgeAvailableBalanceTx.value,
+      isDelegateCall: !!bridgeAvailableBalanceTx.isDelegateCall,
       allowFailure: false,
     },
   ];
   const nonce = getCowShedNonce();
   const deadline = getCowShedDeadline();
 
+  // Sign the calls using cow-shed's owner
   const signature = await cowShedHooks.signCalls(
     calls,
     nonce,
@@ -155,6 +159,7 @@ async function getCowShedDetails(
     SigningScheme.EIP712
   );
 
+  //  Get the signed transaction's calldata
   const callData = cowShedHooks.encodeExecuteHooksForFactory(
     calls,
     nonce,
@@ -163,6 +168,7 @@ async function getCowShedDetails(
     signature
   );
 
+  // Estimate the gas limit for the transaction
   const cowShedFactoryAddress = cowShedHooks.getFactoryAddress();
   const gasEstimate = await wallet.estimateGas({
     to: cowShedFactoryAddress,
@@ -170,9 +176,10 @@ async function getCowShedDetails(
     value: 0,
   });
 
+  // Return the details, including the signed transaction data
   return {
     cowShedAccount,
-    authenticatedBridgeTx: {
+    bridgeTx: {
       callData,
       to: cowShedFactoryAddress,
       value: 0n,
