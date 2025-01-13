@@ -2,7 +2,6 @@ import { ethers } from "ethers";
 import { getExplorerUrl, getWallet } from "../../common/utils";
 import { sepolia, COW_VAULT_RELAYER_CONTRACT } from "../../const";
 import { SupportedChainId } from "@cowprotocol/cow-sdk";
-const { WETH_ADDRESS } = sepolia;
 
 const MAX_ALLOWANCE = ethers.constants.MaxUint256;
 const ERC20_APPROVAL_ABI = [
