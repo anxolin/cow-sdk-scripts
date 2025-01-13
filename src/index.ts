@@ -14,6 +14,7 @@ import { run as preSign } from "./TradeSDK/presign";
 import { run as limitSell } from "./TradeSDK/limitSell";
 import { run as swapSellNative } from "./TradeSDK/swapSellNative";
 import { run as nativeSell } from "./TradeSDK/nativeSell";
+import { run as swapWithAppData } from "./TradeSDK/swapWithAppData";
 
 dotenv.config();
 
@@ -33,13 +34,14 @@ const JOBS: (() => Promise<unknown>)[] = [
   // swapWithPartnerFee, // FIXME: It doesn't work
   // swapInBarn, // FIXME: It doesn't work
   // swapSellWithValidFor, // TODO: Why we can only place order to execute in max 3 hours? Is there a backend limit?
+  swapWithAppData,
   //
   // getQuoteAndPreSign,
   // preSign, // FIXME: It creates an EIP-712 signature, not a pre-sign
   //
   // limitSell,
   //
-  nativeSell,
+  // nativeSell, // FIXME: Throws error creating the eth flow order. Doesn't recognize 'gas' property - I believe expects 'gasLimit')
 ];
 
 async function main() {
