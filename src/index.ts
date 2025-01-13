@@ -10,7 +10,7 @@ import { run as swapInBarn } from "./TradeSDK/swapInBarn";
 import { run as getQuoteAndPostOrder } from "./TradeSDK/getQuoteAndPostOrder";
 import { run as swapSellWithValidFor } from "./TradeSDK/swapSellWithValidFor";
 import { run as getQuoteAndPreSign } from "./TradeSDK/getQuoteAndPreSign";
-import { run as preSign } from "./TradeSDK/preSign";
+import { run as preSign } from "./TradeSDK/presign";
 
 dotenv.config();
 
@@ -21,8 +21,8 @@ const JOBS: (() => Promise<unknown>)[] = [
   //
   // swap
   // swapWithPk, // FIXME: Doesn't work passing just the PK
-  // swapSell,
-  // swapBuy,
+  // swapSell, // FIXME: Wrong sell amount (increases by the fee)
+  // swapBuy, // FIXME: I suspect the math is wrong as it was not matching exactly CoW Swap UI
   // tradeWithRecipient,
   // swapPartialFill,
   // swapWithReceiver,
@@ -32,6 +32,8 @@ const JOBS: (() => Promise<unknown>)[] = [
   //
   // getQuoteAndPreSign,
   // preSign, // FIXME: It creates an EIP-712 signature, not a pre-sign
+  //
+  //
 ];
 
 async function main() {
