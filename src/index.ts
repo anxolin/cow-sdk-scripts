@@ -11,6 +11,9 @@ import { run as getQuoteAndPostOrder } from "./TradeSDK/getQuoteAndPostOrder";
 import { run as swapSellWithValidFor } from "./TradeSDK/swapSellWithValidFor";
 import { run as getQuoteAndPreSign } from "./TradeSDK/getQuoteAndPreSign";
 import { run as preSign } from "./TradeSDK/presign";
+import { run as limitSell } from "./TradeSDK/limitSell";
+import { run as swapSellNative } from "./TradeSDK/swapSellNative";
+import { run as nativeSell } from "./TradeSDK/nativeSell";
 
 dotenv.config();
 
@@ -19,10 +22,11 @@ const JOBS: (() => Promise<unknown>)[] = [
   // approveToken, // Required to approve the token before trading
   // getQuoteAndPostOrder, // Simplest way to integrate!
   //
-  // swap
   // swapWithPk, // FIXME: Doesn't work passing just the PK
   // swapSell, // FIXME: Wrong sell amount (increases by the fee)
   // swapBuy, // FIXME: I suspect the math is wrong as it was not matching exactly CoW Swap UI
+  // swapSell, // FIXME: Wrong sell amount (increases by the fee)
+  // swapSellNative, // FIXME: The documentation says that it handle automatically the eth flow, however what it does it to place aa WETH order (that is not what I instructed in the params)
   // tradeWithRecipient,
   // swapPartialFill,
   // swapWithReceiver,
@@ -33,7 +37,9 @@ const JOBS: (() => Promise<unknown>)[] = [
   // getQuoteAndPreSign,
   // preSign, // FIXME: It creates an EIP-712 signature, not a pre-sign
   //
+  // limitSell,
   //
+  nativeSell,
 ];
 
 async function main() {
