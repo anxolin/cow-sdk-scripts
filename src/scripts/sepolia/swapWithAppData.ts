@@ -7,7 +7,8 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getWallet } from "../../common/utils";
+import { getWallet } from "../../utils";
+import { MetadataApi } from "@cowprotocol/app-data";
 
 export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);
@@ -20,7 +21,7 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log("Swap with partial fill");
+  console.log("Swap with custom appData (UTM codes)");
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
     amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
@@ -29,11 +30,22 @@ export async function run() {
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
     slippageBps: 50,
-    partiallyFillable: true,
   };
 
+  const metadataApi = new MetadataApi();
+  const appData = await metadataApi.generateAppDataDoc({
+    appCode: APP_CODE,
+    metadata: {
+      utm: {
+        utmSource: "AnxoTest",
+        utmMedium: "script",
+        utmCampaign: "@anxolin/cow-sdk-scripts",
+      },
+    },
+  });
+
   // Post the order
-  const orderId = await sdk.postSwapOrder(parameters);
+  const orderId = await sdk.postSwapOrder(parameters, { appData });
 
   console.log(
     `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`

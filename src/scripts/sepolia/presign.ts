@@ -9,7 +9,7 @@ import {
   SigningScheme,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getExplorerUrl, getWallet, jsonReplacer } from "../../common/utils";
+import { getExplorerUrl, getWallet, jsonReplacer } from "../../utils";
 
 export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);

@@ -5,11 +5,11 @@ import {
   OrderKind,
   TradeParameters,
   TradingSdk,
+  SwapAdvancedSettings,
+  SigningScheme,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getWallet } from "../../common/utils";
-
-const PARTNER_FEE_ADDRESS = "0x79063d9173C09887d536924E2F6eADbaBAc099f5";
+import { confirm, getWallet } from "../../utils";
 
 export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);
@@ -22,9 +22,7 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log(
-    `Swap with 1% partner fee, to be received by ${PARTNER_FEE_ADDRESS}`
-  );
+  console.log("Presign");
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
     amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
@@ -33,18 +31,30 @@ export async function run() {
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
     slippageBps: 50,
+  };
 
-    // FIXME: It doesn't work. Partner fee is not added to the appData
-    partnerFee: {
-      bps: 100, // 100 BPS (1%) partner fee
-      recipient: PARTNER_FEE_ADDRESS, // Partner fee recipient
+  const advancedParameters: SwapAdvancedSettings = {
+    quoteRequest: {
+      // Specify the signing scheme
+      signingScheme: SigningScheme.PRESIGN,
     },
   };
 
   // Post the order
-  const orderId = await sdk.postSwapOrder(parameters);
-
-  console.log(
-    `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+  const { quoteResults, postSwapOrderFromQuote } = await sdk.getQuote(
+    parameters,
+    advancedParameters
   );
+
+  const buyAmount = quoteResults.amountsAndCosts.afterSlippage.buyAmount;
+  const confirmed = await confirm(
+    `You will get at least ${buyAmount} COW, ok?`
+  );
+  if (confirmed) {
+    const orderId = await postSwapOrderFromQuote();
+
+    console.log(
+      `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+    );
+  }
 }

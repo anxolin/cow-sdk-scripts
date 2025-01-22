@@ -17,7 +17,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@cowprotocol/cow-sdk": "5.10.0-RC.0",
+    "@cowprotocol/cow-sdk": "5.10.0-RC.1",
     "@weiroll/weiroll.js": "^0.3.0",
     "dotenv": "^16.4.5",
     "ethers": "^5.7.2",

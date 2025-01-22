@@ -6,22 +6,21 @@ import {
   TradeParameters,
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
-import { getPk } from "../../common/utils";
 import { ethers } from "ethers";
+import { getWallet } from "../../utils";
 
 export async function run() {
-  // Get the private key
-  const privateKey = getPk();
+  const wallet = await getWallet(SupportedChainId.SEPOLIA);
 
-  // Initialize the SDK
+  // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
     chainId: SupportedChainId.SEPOLIA,
-    signer: privateKey, // Use the private key directly
+    signer: wallet, // Use a signer
     appCode: APP_CODE,
   });
 
   // Define trade parameters
-  console.log("Swap using PK");
+  console.log("Swap Buy 100 COW with WETH (0.5% slippage)");
   const parameters: TradeParameters = {
     kind: OrderKind.BUY, // Buy
     amount: ethers.utils.parseUnits("100", 18).toString(), // 100 COW

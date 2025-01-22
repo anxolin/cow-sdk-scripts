@@ -7,14 +7,7 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import {
-  confirm,
-  getWallet,
-  jsonReplacer,
-  printQuote,
-} from "../../common/utils";
-
-const PARTNER_FEE_ADDRESS = "0x79063d9173C09887d536924E2F6eADbaBAc099f5";
+import { getWallet } from "../../utils";
 
 export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);
@@ -36,30 +29,12 @@ export async function run() {
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
     slippageBps: 50,
-
-    // Optionally add a partner fee and a recipient
-    partnerFee: {
-      bps: 100,
-      recipient: PARTNER_FEE_ADDRESS,
-    },
   };
 
   // Post the order
-  const { quoteResults, postSwapOrderFromQuote } = await sdk.getQuote(
-    parameters
+  const orderId = await sdk.postSwapOrder(parameters);
+
+  console.log(
+    `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
   );
-
-  printQuote(quoteResults);
-  const buyAmount = quoteResults.amountsAndCosts.afterSlippage.buyAmount;
-
-  const confirmed = await confirm(
-    `You will get at least ${buyAmount} COW. ok?`
-  );
-  if (confirmed) {
-    const orderId = await postSwapOrderFromQuote();
-
-    console.log(
-      `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
-    );
-  }
 }

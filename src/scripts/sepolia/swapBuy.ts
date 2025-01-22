@@ -7,7 +7,7 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getWallet } from "../../common/utils";
+import { getWallet } from "../../utils";
 
 export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);

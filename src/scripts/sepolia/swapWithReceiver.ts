@@ -5,10 +5,11 @@ import {
   OrderKind,
   TradeParameters,
   TradingSdk,
-  LimitTradeParameters,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getWallet } from "../../common/utils";
+import { getWallet } from "../../utils";
+
+const RECEIVER_ADDRESS = "0x79063d9173C09887d536924E2F6eADbaBAc099f5";
 
 export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);
@@ -21,20 +22,20 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log("Limit Order: Sell 0.1 WETH for at least 1 wei of COW");
-  const parameters: LimitTradeParameters = {
-    kind: OrderKind.SELL, // Sell
-    sellAmount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
-    buyAmount: "1", // 1 wei of COW (pure market order)
-    sellToken: WETH_ADDRESS,
+  console.log(`Swap and send to receiver: ${RECEIVER_ADDRESS}`);
+  const parameters: TradeParameters = {
+    kind: OrderKind.BUY, // Buy
+    amount: ethers.utils.parseUnits("100", 18).toString(), // 100 COW
+    sellToken: WETH_ADDRESS, // With WETH
     sellTokenDecimals: 18,
-    buyToken: COW_ADDRESS, // For COW
+    buyToken: COW_ADDRESS,
     buyTokenDecimals: 18,
     slippageBps: 50,
+    receiver: RECEIVER_ADDRESS, // Receiver
   };
 
   // Post the order
-  const orderId = await sdk.postLimitOrder(parameters);
+  const orderId = await sdk.postSwapOrder(parameters);
 
   console.log(
     `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`

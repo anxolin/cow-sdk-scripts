@@ -7,8 +7,9 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getWallet } from "../../common/utils";
-import { MetadataApi } from "@cowprotocol/app-data";
+import { confirm, getWallet, jsonReplacer, printQuote } from "../../utils";
+
+const PARTNER_FEE_ADDRESS = "0x79063d9173C09887d536924E2F6eADbaBAc099f5";
 
 export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);
@@ -21,7 +22,7 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log("Swap with custom appData (UTM codes)");
+  console.log("Swap Sell 0.1 WETH for COW (0.5% slippage)");
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
     amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
@@ -30,24 +31,30 @@ export async function run() {
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
     slippageBps: 50,
+
+    // Optionally add a partner fee and a recipient
+    partnerFee: {
+      bps: 100,
+      recipient: PARTNER_FEE_ADDRESS,
+    },
   };
 
-  const metadataApi = new MetadataApi();
-  const appData = await metadataApi.generateAppDataDoc({
-    appCode: APP_CODE,
-    metadata: {
-      utm: {
-        utmSource: "AnxoTest",
-        utmMedium: "script",
-        utmCampaign: "@anxolin/cow-sdk-scripts",
-      },
-    },
-  });
-
   // Post the order
-  const orderId = await sdk.postSwapOrder(parameters, { appData });
-
-  console.log(
-    `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+  const { quoteResults, postSwapOrderFromQuote } = await sdk.getQuote(
+    parameters
   );
+
+  printQuote(quoteResults);
+  const buyAmount = quoteResults.amountsAndCosts.afterSlippage.buyAmount;
+
+  const confirmed = await confirm(
+    `You will get at least ${buyAmount} COW. ok?`
+  );
+  if (confirmed) {
+    const orderId = await postSwapOrderFromQuote();
+
+    console.log(
+      `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+    );
+  }
 }

@@ -1,22 +1,26 @@
-import { run as approveTokenSepolia } from "./TradeSDK/sepolia/approveTokenSepolia";
 import dotenv from "dotenv";
-import { run as swapWithPk } from "./TradeSDK/sepolia/swapWithPk";
-import { run as swapBuy } from "./TradeSDK/sepolia/swapBuy";
-import { run as swapSell } from "./TradeSDK/sepolia/swapSell";
-import { run as swapWithReceiver } from "./TradeSDK/sepolia/swapWithReceiver";
-import { run as swapPartialFill } from "./TradeSDK/sepolia/swapPartialFill";
-import { run as swapWithPartnerFee } from "./TradeSDK/sepolia/swapWithPartnerFee";
-import { run as swapInBarn } from "./TradeSDK/sepolia/swapInBarn";
-import { run as getQuoteAndPostOrder } from "./TradeSDK/sepolia/getQuoteAndPostOrder";
-import { run as swapSellWithValidFor } from "./TradeSDK/sepolia/swapSellWithValidFor";
-import { run as getQuoteAndPreSign } from "./TradeSDK/sepolia/getQuoteAndPreSign";
-import { run as preSign } from "./TradeSDK/sepolia/presign";
-import { run as limitSell } from "./TradeSDK/sepolia/limitSell";
-import { run as swapSellNative } from "./TradeSDK/sepolia/swapSellNative";
-import { run as nativeSell } from "./TradeSDK/sepolia/nativeSell";
-import { run as swapWithAppData } from "./TradeSDK/sepolia/swapWithAppData";
-import { run as swapAndBridgeUsingOmnibridge } from "./TradeSDK/mainnet/swapAndBridgeUsingOmnibridge";
-import { run as approveTokenMainnet } from "./TradeSDK/mainnet/approveTokenMainnet";
+
+import { run as approveTokenSepolia } from "./scripts/sepolia/approveTokenSepolia";
+
+import { run as swapWithPk } from "./scripts/sepolia/swapWithPk";
+import { run as swapBuy } from "./scripts/sepolia/swapBuy";
+import { run as swapSell } from "./scripts/sepolia/swapSell";
+import { run as swapWithReceiver } from "./scripts/sepolia/swapWithReceiver";
+import { run as swapPartialFill } from "./scripts/sepolia/swapPartialFill";
+import { run as swapWithPartnerFee } from "./scripts/sepolia/swapWithPartnerFee";
+import { run as swapInBarn } from "./scripts/sepolia/swapInBarn";
+import { run as getQuoteAndPostOrder } from "./scripts/sepolia/getQuoteAndPostOrder";
+import { run as swapSellWithValidFor } from "./scripts/sepolia/swapSellWithValidFor";
+import { run as getQuoteAndPreSign } from "./scripts/sepolia/getQuoteAndPreSign";
+import { run as preSign } from "./scripts/sepolia/presign";
+import { run as swapSellNative } from "./scripts/sepolia/swapSellNative";
+import { run as limitSell } from "./scripts/sepolia/limitSell";
+import { run as nativeSell } from "./scripts/sepolia/nativeSell";
+import { run as swapWithAppData } from "./scripts/sepolia/swapWithAppData";
+import { run as swapAndBridgeUsingOmnibridge } from "./scripts/mainnet/swapAndBridgeUsingOmnibridge";
+import { run as approveTokenMainnet } from "./scripts/mainnet/approveTokenMainnet";
+import { run as swapAndBridgeUsingXdaiBridge } from "./scripts/mainnet/swapAndBridgeUsingXdaiBridge";
+
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
@@ -24,12 +28,11 @@ const JOBS: (() => Promise<unknown>)[] = [
   // approveTokenSepolia, // Required to approve the token before trading
   // getQuoteAndPostOrder, // Simplest way to integrate!
   //
-  // swapWithPk, // FIXME: Doesn't work passing just the PK
-  // swapSell, // FIXME: Wrong sell amount (increases by the fee)
-  // swapBuy, // FIXME: I suspect the math is wrong as it was not matching exactly CoW Swap UI
-  // swapSell, // FIXME: Wrong sell amount (increases by the fee)
+  // swapWithPk,
+  // swapSell,
+  // swapBuy,
+  // swapSell,
   // swapSellNative, // FIXME: The documentation says that it handle automatically the eth flow, however what it does it to place aa WETH order (that is not what I instructed in the params)
-  // tradeWithRecipient,
   // swapPartialFill,
   // swapWithReceiver,
   // swapWithPartnerFee, // FIXME: It doesn't work
@@ -46,6 +49,7 @@ const JOBS: (() => Promise<unknown>)[] = [
   //
   // approveTokenMainnet,
   swapAndBridgeUsingOmnibridge,
+  // swapAndBridgeUsingXdaiBridge,
 ];
 
 async function main() {

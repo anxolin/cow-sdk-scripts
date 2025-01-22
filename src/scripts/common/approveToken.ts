@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { getExplorerUrl, getWallet } from "../../common/utils";
+import { getExplorerUrl, getWallet } from "../../utils";
 import { sepolia, COW_VAULT_RELAYER_CONTRACT } from "../../const";
 import { SupportedChainId } from "@cowprotocol/cow-sdk";
 

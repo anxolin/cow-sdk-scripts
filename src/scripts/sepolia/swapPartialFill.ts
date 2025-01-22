@@ -7,7 +7,7 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
-import { getWallet } from "../../common/utils";
+import { getWallet } from "../../utils";
 
 export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);
@@ -20,7 +20,7 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log("Swap Sell 0.1 WETH for COW (0.5% slippage)");
+  console.log("Swap with partial fill");
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
     amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
@@ -29,6 +29,7 @@ export async function run() {
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
     slippageBps: 50,
+    partiallyFillable: true,
   };
 
   // Post the order
