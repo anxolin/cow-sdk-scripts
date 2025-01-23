@@ -13,14 +13,17 @@ export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);
 
   // Initialize the SDK with the wallet
-  const sdk = new TradingSdk({
-    chainId: SupportedChainId.SEPOLIA,
-    signer: wallet, // Use a signer
-    appCode: APP_CODE,
-  });
+  const sdk = new TradingSdk(
+    {
+      chainId: SupportedChainId.SEPOLIA,
+      signer: wallet, // Use a signer
+      appCode: APP_CODE,
+    },
+    { logs: true }
+  );
 
   // Define trade parameters
-  console.log("Swap Sell 0.1 WETH for COW (0.5% slippage)");
+  console.log("Swap Sell 0.1 WETH for COW");
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
     amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
@@ -28,7 +31,6 @@ export async function run() {
     sellTokenDecimals: 18,
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
-    slippageBps: 50,
   };
 
   // Post the order

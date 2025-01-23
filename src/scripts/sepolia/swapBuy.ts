@@ -20,7 +20,7 @@ export async function run() {
   });
 
   // Define trade parameters
-  console.log("Swap in Barn environment");
+  console.log("Swap Buy 100 COW with WETH");
   const parameters: TradeParameters = {
     kind: OrderKind.BUY, // Buy
     amount: ethers.utils.parseUnits("100", 18).toString(), // 100 COW
@@ -28,8 +28,6 @@ export async function run() {
     sellTokenDecimals: 18,
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
-    slippageBps: 50,
-    env: "staging", // Barn
   };
 
   // Post the order

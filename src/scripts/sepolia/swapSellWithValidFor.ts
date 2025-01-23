@@ -28,7 +28,6 @@ export async function run() {
     sellTokenDecimals: 18,
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
-    slippageBps: 50,
     validFor: 60 * 60 * 2, // Expire in 2 hours
   };
 

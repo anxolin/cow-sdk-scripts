@@ -32,7 +32,6 @@ export async function run() {
     sellTokenDecimals: 18,
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
-    slippageBps: 50,
 
     // FIXME: It doesn't work. Partner fee is not added to the appData
     partnerFee: {

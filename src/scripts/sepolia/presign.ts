@@ -30,7 +30,6 @@ export async function run() {
     sellTokenDecimals: 18,
     buyToken: COW_ADDRESS, // For COW
     buyTokenDecimals: 18,
-    slippageBps: 50,
   };
 
   const advancedParameters: SwapAdvancedSettings = {

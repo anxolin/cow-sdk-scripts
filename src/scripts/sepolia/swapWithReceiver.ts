@@ -30,7 +30,6 @@ export async function run() {
     sellTokenDecimals: 18,
     buyToken: COW_ADDRESS,
     buyTokenDecimals: 18,
-    slippageBps: 50,
     receiver: RECEIVER_ADDRESS, // Receiver
   };
 
