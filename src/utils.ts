@@ -94,6 +94,17 @@ export function getExplorerUrl(chainId: SupportedChainId, txHash: string) {
   if (chainId === SupportedChainId.SEPOLIA) {
     return `https://sepolia.etherscan.io/tx/${txHash}`;
   }
+  if (chainId === SupportedChainId.GNOSIS_CHAIN) {
+    return `https://gnosisscan.io/tx/${txHash}`;
+  }
 
-  throw new Error(`Unsupported chainId ${chainId}`);
+  if (chainId === SupportedChainId.ARBITRUM_ONE) {
+    return `https://arbiscan.io/tx/${txHash}`;
+  }
+
+  if (chainId === SupportedChainId.BASE) {
+    return `https://basescan.org/tx/${txHash}`;
+  }
+
+  throw new Error(`Unsupported Explorer for chainId ${chainId}`);
 }

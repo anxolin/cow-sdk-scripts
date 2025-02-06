@@ -19,6 +19,7 @@
   "dependencies": {
     "@cowprotocol/cow-sdk": "5.10.0-RC.2",
     "@weiroll/weiroll.js": "^0.3.0",
+    "axios": "^1.7.9",
     "dotenv": "^16.4.5",
     "ethers": "^5.7.2",
     "inquirer": "^12.3.0"

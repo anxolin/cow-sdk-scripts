@@ -17,11 +17,13 @@ import { run as swapSellNative } from "./scripts/sepolia/swapSellNative";
 import { run as limitSell } from "./scripts/sepolia/limitSell";
 import { run as nativeSell } from "./scripts/sepolia/nativeSell";
 import { run as swapWithAppData } from "./scripts/sepolia/swapWithAppData";
-import { run as swapAndBridgeUsingOmnibridge } from "./scripts/mainnet/swapAndBridgeUsingOmnibridge";
-import { run as approveTokenMainnet } from "./scripts/mainnet/approveTokenMainnet";
-import { run as swapAndBridgeUsingXdaiBridge } from "./scripts/mainnet/swapAndBridgeUsingXdaiBridge";
+import { run as swapAndBridgeUsingOmnibridge } from "./scripts/bridging/swapAndBridgeUsingOmnibridge";
+import { run as swapAndBridgeUsingXdaiBridge } from "./scripts/bridging/swapAndBridgeUsingXdaiBridge";
 import { run as swapSellWithSlippageTolerance } from "./scripts/sepolia/swapSellWithSlippageTolerance";
 
+import { run as approveTokenMainnet } from "./scripts/mainnet/approveTokenMainnet";
+import { run as approveTokenGnosis } from "./scripts/gnosis/approveTokenGnosis";
+import { run as swapAndBridgeSwapsIo } from "./scripts/bridging/swapAndBridgeSwapsIO";
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
@@ -52,6 +54,9 @@ const JOBS: (() => Promise<unknown>)[] = [
   // approveTokenMainnet,
   // swapAndBridgeUsingOmnibridge,
   // swapAndBridgeUsingXdaiBridge,
+  //
+  // approveTokenGnosis,
+  // swapAndBridgeSwapsIo,
 ];
 
 async function main() {
