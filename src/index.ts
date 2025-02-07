@@ -24,6 +24,8 @@ import { run as swapSellWithSlippageTolerance } from "./scripts/sepolia/swapSell
 import { run as approveTokenMainnet } from "./scripts/mainnet/approveTokenMainnet";
 import { run as approveTokenGnosis } from "./scripts/gnosis/approveTokenGnosis";
 import { run as swapAndBridgeSwapsIo } from "./scripts/bridging/swapAndBridgeSwapsIO";
+import { run as approveTokenArbitrum } from "./scripts/arbitrum/approveTokenArbitrum";
+import { run as swapAndBridgeAccross } from "./scripts/bridging/swapAndBridgeAccross";
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
@@ -57,6 +59,9 @@ const JOBS: (() => Promise<unknown>)[] = [
   //
   // approveTokenGnosis,
   // swapAndBridgeSwapsIo,
+
+  // approveTokenArbitrum,
+  swapAndBridgeAccross,
 ];
 
 async function main() {
