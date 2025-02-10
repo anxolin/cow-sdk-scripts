@@ -64,10 +64,6 @@ export async function run() {
   });
   const intermediateTokenAmount =
     quote.quoteResults.amountsAndCosts.afterSlippage.buyAmount;
-  const intermediateTokenAmountFormatted = ethers.utils.formatUnits(
-    intermediateTokenAmount,
-    buyTokenDecimals
-  );
 
   // Get raw transaction to bridge all available DAI from cow-shed using xDAI Bridge
   const bridgeWithXdaiBridgeTx = await bridgeWithAcross({
