@@ -110,11 +110,10 @@ export async function bridgeWithAcross(
   const quoteTimestamp = BigInt(depositParams.quoteTimestamp);
   const fillDeadline = BigInt(Math.floor(Date.now() / 1000) + 7200); // 2 hours from now
   const exclusivityDeadlineOffset = BigInt(depositParams.exclusivityDeadline);
-  const exclusiveRelayer = !isZeroAddress(depositParams.exclusiveRelayer);
 
   // Deposit into spoke pool
   planner.add(
-    spokePoolContract[exclusiveRelayer ? "depositExclusive" : "depositV3"](
+    spokePoolContract.depositV3(
       cowShedAccount,
       recipient,
       depositParams.inputToken,
