@@ -25,7 +25,8 @@ import { run as approveTokenMainnet } from "./scripts/mainnet/approveTokenMainne
 import { run as approveTokenGnosis } from "./scripts/gnosis/approveTokenGnosis";
 import { run as swapAndBridgeSwapsIo } from "./scripts/bridging/swapAndBridgeSwapsIO";
 import { run as approveTokenArbitrum } from "./scripts/arbitrum/approveTokenArbitrum";
-import { run as swapAndBridgeAccross } from "./scripts/bridging/swapAndBridgeAccross";
+import { run as swapAndBridgeAccrossArbitrum } from "./scripts/bridging/swapAndBridgeAccrossArbitrum";
+import { run as swapAndBridgeAccrossMainnet } from "./scripts/bridging/swapAndBridgeAccrossMainnet";
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
@@ -61,7 +62,8 @@ const JOBS: (() => Promise<unknown>)[] = [
   // swapAndBridgeSwapsIo,
 
   // approveTokenArbitrum,
-  swapAndBridgeAccross,
+  // swapAndBridgeAccrossArbitrum,
+  swapAndBridgeAccrossMainnet,
 ];
 
 async function main() {
