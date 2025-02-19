@@ -22,7 +22,7 @@ export async function run() {
   const targetChain = SupportedChainId.BASE;
   const sellToken = arbitrum.USDC_ADDRESS;
   const sellTokenDecimals = 6;
-  const sellAmount = ethers.utils.parseUnits("5", 18).toString();
+  const sellAmount = ethers.utils.parseUnits("5", sellTokenDecimals).toString();
   const buyToken = base.WETH_ADDRESS;
   const buyTokenDecimals = 18;
 
@@ -64,6 +64,8 @@ export async function run() {
   });
   const intermediateTokenAmount =
     quote.quoteResults.amountsAndCosts.afterSlippage.buyAmount;
+
+  console.log("quote", JSON.stringify(quote, jsonReplacer, 2));
 
   // Get raw transaction to bridge all available DAI from cow-shed using xDAI Bridge
   const bridgeWithXdaiBridgeTx = await bridgeWithAcross({

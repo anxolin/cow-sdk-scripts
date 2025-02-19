@@ -67,8 +67,7 @@ export async function bridgeWithAcross(
     BigInt(sourceTokenAmount),
     recipient
   );
-  const depositParams = quote.deposit;
-  const relayFeePercentage = quote.fees.totalRelayFee.pct; // TODO: review fee model
+  const relayFeePercentage = quote.totalRelayFee.pct; // TODO: review fee model
 
   // Create bridged token contract
   const bridgedTokenContract = WeirollContract.createContract(
@@ -90,54 +89,57 @@ export async function bridgeWithAcross(
 
   // Get balance of CoW shed proxy
   console.log(
-    `[omnibridge] Get cow-shed balance for ERC20.balanceOf(${cowShedAccount}) for ${bridgedTokenContract}`
+    `[across] Get cow-shed balance for ERC20.balanceOf(${cowShedAccount}) for ${bridgedTokenContract}`
   );
 
   // Get bridged amount (balance of the intermediate token at swap time)
-  const actualIntermediateAmount = planner.add(
+  const sourceAmountIncludingSurplus = planner.add(
     bridgedTokenContract.balanceOf(cowShedAccount)
   );
 
   // Get the output amount using the actual received intermediate amount
-  const actualOutputAmount = planner.add(
+  const outputAmountIncludingSurplus = planner.add(
     mathContract.multiplyAndSubtract(
-      actualIntermediateAmount,
+      sourceAmountIncludingSurplus,
       BigInt(relayFeePercentage)
     )
   );
 
+  // Set allowance for SpokePool to transfer bridged tokens
+  console.log(
+    `[acros] bridgedTokenContract.approve(${spokePoolAddress}, ${sourceAmountIncludingSurplus}) for ${bridgedTokenContract}`
+  );
+  planner.add(
+    bridgedTokenContract.approve(spokePoolAddress, sourceAmountIncludingSurplus)
+  );
+
   // Prepare deposit params
-  const quoteTimestamp = BigInt(depositParams.quoteTimestamp);
-  const fillDeadline = BigInt(Math.floor(Date.now() / 1000) + 7200); // 2 hours from now
-  const exclusivityDeadlineOffset = BigInt(depositParams.exclusivityDeadline);
+  const quoteTimestamp = BigInt(quote.timestamp);
+  const fillDeadline = quote.fillDeadline; // BigInt(Math.floor(Date.now() / 1000) + 7200); // 2 hours from now
+  const exclusivityDeadline = quote.exclusivityDeadline;
+  const exclusiveRelayer = quote.exclusiveRelayer;
+  const message = "0x";
 
   // Deposit into spoke pool
   planner.add(
     spokePoolContract.depositV3(
       cowShedAccount,
       recipient,
-      depositParams.inputToken,
-      depositParams.outputToken,
-      actualIntermediateAmount,
-      actualOutputAmount,
-      depositParams.destinationChainId,
-      depositParams.exclusiveRelayer,
+      sourceToken,
+      targetToken,
+      sourceAmountIncludingSurplus,
+      outputAmountIncludingSurplus,
+      targetChain,
+      exclusiveRelayer,
       quoteTimestamp,
       fillDeadline,
-      exclusivityDeadlineOffset,
-      depositParams.message
+      exclusivityDeadline,
+      message
     )
   );
 
   // Return the transaction
   return getWeirollTx({ planner });
-}
-
-function isZeroAddress(address: string) {
-  return (
-    address.toLocaleLowerCase() ===
-    ethers.constants.AddressZero.toLocaleLowerCase()
-  );
 }
 
 export { getIntermediateTokenFromTargetToken } from "./utils";

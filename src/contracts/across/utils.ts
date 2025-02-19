@@ -4,31 +4,16 @@ import { arbitrum, base, mainnet, optimism } from "viem/chains"; // TODO: Can we
 import { ChainConfig, Route } from "./types";
 import { chainIdMap } from "./chainMapping";
 import { SupportedChainId } from "@cowprotocol/cow-sdk";
-
-function createClientAcross() {
-  const client = createAcrossClient({
-    integratorId: "0x0062", // cowswap identifier
-    chains: [mainnet, optimism, arbitrum, base],
-  });
-  return client;
-}
+import axios from "axios";
 
 export async function getAcrossQuote(
   params: Route,
   inputAmount: bigint,
   recipient: string
 ) {
-  const client = createClientAcross();
-  const quote = await client.getQuote({
-    route: {
-      ...params,
-      inputToken: getAddress(params.inputToken),
-      outputToken: getAddress(params.outputToken),
-    },
-    inputAmount,
-    recipient: getAddress(recipient),
-  });
-  return quote;
+  const { inputToken, originChainId, destinationChainId } = params;
+  const url = `https://app.across.to/api/suggested-fees?token=${inputToken}&originChainId=${originChainId}&destinationChainId=${destinationChainId}&amount=${inputAmount}&recipient=${recipient}`;
+  return axios.get(url).then((res) => res.data);
 }
 
 export function getOutputTokenFromIntermediateToken(params: {
