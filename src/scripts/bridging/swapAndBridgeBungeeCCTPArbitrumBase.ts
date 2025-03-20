@@ -16,6 +16,24 @@ import { confirm, getWallet, jsonReplacer } from '../../utils';
 import { getErc20Contract } from '../../contracts/erc20';
 import { bridgeWithBungee } from '../../contracts/socket';
 
+/**
+ * 1. Get quote from Cowswap for USDT Arb to USDC Arb
+ * 2. Get quote from Bungee for the quoted USDC Arb to USDC Base via CCTP/Across
+ * 3. Get transaction calldata for SocketGateway contract to execute the bridge
+ * 4. Prepare weiroll batch txn post-swap hook with the following steps:
+ *   1. Fetch cowshed contract balance of USDC Arb
+ *   2. Approve USDC Arb allowance from Cowshed to SocketGateway contract iff allowance is insufficient
+ *   3. Modify the SocketGateway execution calldata to replace the bridge input amount with cowshed balance via
+ *      - uses a BytesLib contract that can modify a bytes value
+ *      - this is because SocketGateway is a proxy contract and the impl calldata is supposed to be a bytes param of the bridge function call
+ *      - weiroll calls BytesLib contract to modify the bytes param
+ *   4. Execute bridge on SocketGateway
+ * 5. Create authenticated cowshed txn
+ * 6. Generate app data for hook
+ * 7. Get final quote from Cowswap for the modified swap
+ * 8. Approve VaultRelayer contract if allowance is insufficient
+ * 9. Post order on Cowswap
+ */
 export async function run() {
   /**
    * Swap from USDT to USDC on Arbitrum,
@@ -180,7 +198,7 @@ export async function run() {
     const tx = await sellTokenContract.approve(
       vaultRelayerContract,
       // sellAmount
-      ethers.utils.parseUnits("1000", sellTokenDecimals)
+      ethers.utils.parseUnits('1000', sellTokenDecimals)
     );
     console.log('Allowance granted tx', tx);
     await tx.wait(2);
