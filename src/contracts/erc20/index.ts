@@ -5,6 +5,7 @@ const ERC20_BALANCE_OF_ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
   "function decimals() external view returns (uint8)",
   "function symbol() external view returns (string)",
+  "function allowance(address owner, address spender) external view returns (uint256)",
 ] as const;
 
 export function getErc20Contract(
