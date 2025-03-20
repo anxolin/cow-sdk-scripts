@@ -194,14 +194,5 @@ export async function run() {
     `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`
   );
 
-  // Wait for the bridge start
-  console.log('🕣 Waiting for the bridge to start...');
-  console.log('🔗 Socket link: <URL>');
-  // TODO: Implement
-
-  // Wait for the bridging to be completed
-  console.log('🕣 Waiting for the bridging to be completed...');
-  // TODO: Implement
-
   console.log(`🎉 The USDC is now waiting for you in Base`);
 }
