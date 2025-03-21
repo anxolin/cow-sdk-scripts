@@ -2,11 +2,6 @@
 # yarn lockfile v1
 
 
-"@across-protocol/app-sdk@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@across-protocol/app-sdk/-/app-sdk-0.1.0.tgz#88928d89aa9be8d512327a652f8086b53cf314bc"
-  integrity sha512-Xs2Qkh/scpYFPMguNdXe5U/p8wZLZQQeAJCp3DSEpeT2McZHghsi4sRliwnJG/hnyyxTHxvH9jom/r3i1PmfIA==
-
 "@adraffy/ens-normalize@^1.10.1":
   version "1.11.0"
   resolved "https://registry.yarnpkg.com/@adraffy/ens-normalize/-/ens-normalize-1.11.0.tgz#42cc67c5baa407ac25059fcd7d405cc5ecdb0c33"
@@ -47,20 +42,21 @@
   resolved "https://registry.npmjs.org/@cowprotocol/contracts/-/contracts-1.7.0.tgz"
   integrity sha512-tog/0igLaWZv6kK30+aFJ267+yNyMINx6qDHaJQFKZs051XUXnzNFlZgCEfICwDz/821XYjZxOnNbe449tgD5w==
 
-"@cowprotocol/cow-sdk@5.10.0-RC.2":
-  version "5.10.0-RC.2"
-  resolved "https://registry.yarnpkg.com/@cowprotocol/cow-sdk/-/cow-sdk-5.10.0-RC.2.tgz#0167163a13b027661d1785acd2d86e3ad1b4bdd2"
-  integrity sha512-mgH9Nu45odlT4dZW9Igo78ww8TKD5KZwsxnyPrpGCy+XwUCUDOYW4LaQwFewpH2vEApYDz2Fa12n+ifKd4ryzw==
+"@cowprotocol/cow-sdk@6.0.0-RC.0":
+  version "6.0.0-RC.0"
+  resolved "https://registry.yarnpkg.com/@cowprotocol/cow-sdk/-/cow-sdk-6.0.0-RC.0.tgz#3f6fba5e0263d9de779dacf610b39080930a3312"
+  integrity sha512-LVehoh9f7PWDb52BOuQ/+QOZBdCCfG5N8AaFgoxErPKB5EFeaYK+m/T2cpcjui6Mr1fbnrGlEJdhTcrX6ove3w==
   dependencies:
     "@cowprotocol/app-data" "^2.4.0"
     "@cowprotocol/contracts" "^1.6.0"
     "@ethersproject/abstract-signer" "^5.7.0"
     "@openzeppelin/merkle-tree" "^1.0.5"
+    "@weiroll/weiroll.js" "^0.3.0"
     cross-fetch "^3.1.5"
     exponential-backoff "^3.1.1"
     graphql "^16.3.0"
     graphql-request "^4.3.0"
-    limiter "^2.1.0"
+    limiter "^3.0.0"
 
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"
@@ -1427,22 +1423,15 @@ json-stringify-deterministic@^1.0.8:
   resolved "https://registry.npmjs.org/json-stringify-deterministic/-/json-stringify-deterministic-1.0.12.tgz"
   integrity sha512-q3PN0lbUdv0pmurkBNdJH3pfFvOTL/Zp0lquqpvcjfKzt6Y0j49EPHAmVHCAS4Ceq/Y+PejWTzyiVpoY71+D6g==
 
-just-performance@4.3.0:
-  version "4.3.0"
-  resolved "https://registry.npmjs.org/just-performance/-/just-performance-4.3.0.tgz"
-  integrity sha512-L7RjvtJsL0QO8xFs5wEoDDzzJwoiowRw6Rn/GnvldlchS2JQr9wFYPiwZcDfrbbujEKqKN0tvENdbjXdYhDp5Q==
-
 kind-of@^6.0.3:
   version "6.0.3"
   resolved "https://registry.npmjs.org/kind-of/-/kind-of-6.0.3.tgz"
   integrity sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==
 
-limiter@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.npmjs.org/limiter/-/limiter-2.1.0.tgz"
-  integrity sha512-361TYz6iay6n+9KvUUImqdLuFigK+K79qrUtBsXhJTLdH4rIt/r1y8r1iozwh8KbZNpujbFTSh74mJ7bwbAMOw==
-  dependencies:
-    just-performance "4.3.0"
+limiter@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/limiter/-/limiter-3.0.0.tgz#03556b76d1a81f547caeecc6b83ecc6f24495715"
+  integrity sha512-hev7DuXojsTFl2YwyzUJMDnZ/qBDd3yZQLSH3aD4tdL1cqfc3TMnoecEJtWFaQFdErZsKoFMBTxF/FBSkgDbEg==
 
 lines-and-columns@^1.1.6:
   version "1.2.4"

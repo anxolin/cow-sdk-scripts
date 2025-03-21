@@ -1,10 +1,8 @@
-import { createAcrossClient } from "@across-protocol/app-sdk";
-import { getAddress, type Address } from "viem";
-import { arbitrum, base, mainnet, optimism } from "viem/chains"; // TODO: Can we use ethers for the example?
 import { ChainConfig, Route } from "./types";
 import { chainIdMap } from "./chainMapping";
 import { SupportedChainId } from "@cowprotocol/cow-sdk";
 import axios from "axios";
+import { Address } from "viem";
 
 export async function getAcrossQuote(
   params: Route,

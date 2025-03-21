@@ -1,4 +1,4 @@
-import { Contract, ethers, Signer } from "ethers";
+import { ethers } from "ethers";
 import { BaseTransaction } from "../../types";
 import { SupportedChainId } from "@cowprotocol/cow-sdk";
 import {
