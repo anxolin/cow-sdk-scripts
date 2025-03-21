@@ -47,7 +47,7 @@ export async function run() {
     preAuthenticatedTx: authenticatedBridgeTx,
     gasLimit,
   } = await createCowShedTx({
-    tx: bridgeWithOmnibridgeTx,
+    call: bridgeWithOmnibridgeTx,
     chainId,
     wallet,
   });

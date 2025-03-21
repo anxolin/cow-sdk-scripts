@@ -1,7 +1,6 @@
 import { BigNumber, ethers } from "ethers";
 
-import { CowShedSdk, SupportedChainId } from "@cowprotocol/cow-sdk";
-import { BaseTransaction } from "../../types";
+import { CowShedSdk, EvmCall, SupportedChainId } from "@cowprotocol/cow-sdk";
 import { jsonReplacer } from "../../utils";
 
 const DEFAULT_GAS_LIMIT = 500_000n;
@@ -9,14 +8,14 @@ const DEFAULT_GAS_LIMIT = 500_000n;
 const cowShedSdk = new CowShedSdk();
 
 export interface SignAndEncodeTxArgs {
-  tx: BaseTransaction;
+  call: EvmCall;
   chainId: SupportedChainId;
   wallet: ethers.Wallet;
 }
 
 export interface CowShedTx {
   cowShedAccount: string;
-  preAuthenticatedTx: BaseTransaction;
+  preAuthenticatedTx: EvmCall;
   gasLimit: bigint;
 }
 
@@ -29,7 +28,7 @@ function getDeadline(): bigint {
 }
 
 export async function createCowShedTx({
-  tx,
+  call: tx,
   wallet,
   chainId,
 }: SignAndEncodeTxArgs): Promise<CowShedTx> {
@@ -43,10 +42,10 @@ export async function createCowShedTx({
   // Prepare the calls for the cow-shed
   const calls = [
     {
-      callData: tx.callData,
+      callData: tx.data,
       target: tx.to,
       value: tx.value,
-      isDelegateCall: !!tx.isDelegateCall,
+      isDelegateCall: true,
       allowFailure: false,
     },
   ];
@@ -71,11 +70,7 @@ export async function createCowShedTx({
   // Return the details, including the signed transaction data
   return {
     cowShedAccount,
-    preAuthenticatedTx: {
-      callData: signedMulticall.data,
-      to: signedMulticall.to,
-      value: signedMulticall.value,
-    },
+    preAuthenticatedTx: signedMulticall,
     gasLimit,
   };
 }

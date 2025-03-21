@@ -1,12 +1,13 @@
-import { BaseTransaction } from "../../types";
 import { ethers } from "ethers";
-import {
-  Planner as WeirollPlanner,
-  Contract as WeirollContract,
-} from "@weiroll/weiroll.js";
-import { CommandFlags, getWeirollTx } from "../weiroll";
+
 import { getErc20Contract } from "../erc20";
-import { SupportedChainId } from "@cowprotocol/cow-sdk";
+import {
+  createWeirollContract,
+  createWeirollDelegateCall,
+  EvmCall,
+  SupportedChainId,
+  WeirollCommandFlags,
+} from "@cowprotocol/cow-sdk";
 import { getCowShedAccount } from "../cowShed";
 import { DAI_ADDRESS } from "../../const/mainnet";
 
@@ -25,50 +26,51 @@ export interface BridgeWithXdaiBridgeTxArgs {
 export async function bridgeWithXdaiBridge({
   owner,
   chainId,
-}: BridgeWithXdaiBridgeTxArgs): Promise<BaseTransaction> {
+}: BridgeWithXdaiBridgeTxArgs): Promise<EvmCall> {
   const cowShedAccount = getCowShedAccount(chainId, owner);
-  const planner = new WeirollPlanner();
 
   // Create bridged token contract
-  const bridgedTokenContract = WeirollContract.createContract(
+  const bridgedTokenContract = createWeirollContract(
     getErc20Contract(DAI_ADDRESS),
-    CommandFlags.CALL // TODO: I think I should use CALL just for the approve, and STATICCALL for the balanceOf (for now is just testing)
-  );
-
-  // Get balance of CoW shed proxy
-  console.log(
-    `[xDaiBridge] Get cow-shed balance for ERC20.balanceOf(${cowShedAccount}) for ${bridgedTokenContract}`
-  );
-  const bridgedAmount = planner.add(
-    bridgedTokenContract.balanceOf(cowShedAccount)
+    WeirollCommandFlags.CALL // TODO: I think I should use CALL just for the approve, and STATICCALL for the balanceOf (for now is just testing)
   );
 
   // Create xDai bridge contract
-  const xDaiBridgeContract = WeirollContract.createContract(
+  const xDaiBridgeContract = createWeirollContract(
     new ethers.Contract(
       XDAI_BRIDGE_GNOSIS_CHAIN_ADDRESS,
       XDAI_BRIDGE_RELAY_TOKENS_ABI
     ),
-    CommandFlags.CALL
+    WeirollCommandFlags.CALL
   );
 
-  // Set allowance for omnibridge to transfer bridged tokens
-  console.log(
-    `[xDaiBridge] xDaiBridgeContract.approve(${XDAI_BRIDGE_GNOSIS_CHAIN_ADDRESS}, ${bridgedAmount}) for ${bridgedTokenContract}`
-  );
-  planner.add(
-    bridgedTokenContract.approve(
-      XDAI_BRIDGE_GNOSIS_CHAIN_ADDRESS,
-      bridgedAmount
-    )
-  );
+  const bridgeDepositCall = createWeirollDelegateCall((planner) => {
+    // Get balance of CoW shed proxy
+    console.log(
+      `[xDaiBridge] Get cow-shed balance for ERC20.balanceOf(${cowShedAccount}) for ${bridgedTokenContract}`
+    );
+    const bridgedAmount = planner.add(
+      bridgedTokenContract.balanceOf(cowShedAccount)
+    );
 
-  // Relay tokens from CoW Shed proxy to Gnosis
-  console.log(
-    `[xDaiBridge] xDaiBridgeContract.relayTokens(${owner}, ${bridgedAmount}) for ${xDaiBridgeContract}`
-  );
-  planner.add(xDaiBridgeContract.relayTokens(owner, bridgedAmount));
+    // Set allowance for omnibridge to transfer bridged tokens
+    console.log(
+      `[xDaiBridge] xDaiBridgeContract.approve(${XDAI_BRIDGE_GNOSIS_CHAIN_ADDRESS}, ${bridgedAmount}) for ${bridgedTokenContract}`
+    );
+    planner.add(
+      bridgedTokenContract.approve(
+        XDAI_BRIDGE_GNOSIS_CHAIN_ADDRESS,
+        bridgedAmount
+      )
+    );
+
+    // Relay tokens from CoW Shed proxy to Gnosis
+    console.log(
+      `[xDaiBridge] xDaiBridgeContract.relayTokens(${owner}, ${bridgedAmount}) for ${xDaiBridgeContract}`
+    );
+    planner.add(xDaiBridgeContract.relayTokens(owner, bridgedAmount));
+  });
 
   // Return the transaction
-  return getWeirollTx({ planner });
+  return bridgeDepositCall;
 }
