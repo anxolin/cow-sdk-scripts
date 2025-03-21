@@ -1,8 +1,4 @@
-import {
-  QuoteAndPost,
-  QuoteResults,
-  SupportedChainId,
-} from "@cowprotocol/cow-sdk";
+import { QuoteResults, SupportedChainId } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
 import inquirer from "inquirer";
 
@@ -19,6 +15,7 @@ export async function getWallet(chainId: SupportedChainId) {
   const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
   const { chainId: providerChainId, name: providerName } =
     await provider.getNetwork();
+
   if (providerChainId !== chainId) {
     throw new Error(
       `Provider is not connected to chain ${chainId}. Provider is connected to chain ${providerChainId} (${providerName})`
