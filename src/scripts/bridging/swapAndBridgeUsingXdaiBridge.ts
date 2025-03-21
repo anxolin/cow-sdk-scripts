@@ -7,7 +7,6 @@ import {
   OrderKind,
   TradeParameters,
   TradingSdk,
-  CowShedHooks,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
 
