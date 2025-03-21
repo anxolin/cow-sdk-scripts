@@ -63,10 +63,10 @@ const JOBS: (() => Promise<unknown>)[] = [
   // swapAndBridgeSwapsIo,
 
   // approveTokenArbitrum,
-  swapAndBridgeAccrossArbitrum,
+  // swapAndBridgeAccrossArbitrum,
   // swapAndBridgeAccrossMainnet,
 
-  // swapAndBridgeSdk,
+  swapAndBridgeSdk,
 ];
 
 async function main() {
