@@ -1,8 +1,20 @@
-import { QuoteResults, SupportedChainId } from "@cowprotocol/cow-sdk";
+import {
+  QuoteResults,
+  SupportedChainId,
+  TargetChainId,
+} from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
 import inquirer from "inquirer";
 
-export async function getWallet(chainId: SupportedChainId) {
+const PROVIDERS_CACHE: Partial<
+  Record<TargetChainId, ethers.providers.JsonRpcProvider>
+> = {};
+
+export async function getRpcProvider(chainId: TargetChainId) {
+  if (PROVIDERS_CACHE[chainId]) {
+    return PROVIDERS_CACHE[chainId];
+  }
+
   const envName = `RPC_URL_${chainId}`;
   const rpcUrl = process.env[envName];
   if (!rpcUrl) {
@@ -11,8 +23,9 @@ export async function getWallet(chainId: SupportedChainId) {
     );
   }
 
-  // Make sure the specified provider is for the correct chain
   const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+
+  // Make sure the specified provider is for the correct chain
   const { chainId: providerChainId, name: providerName } =
     await provider.getNetwork();
 
@@ -22,7 +35,12 @@ export async function getWallet(chainId: SupportedChainId) {
     );
   }
 
-  return new ethers.Wallet(getPk(), provider);
+  PROVIDERS_CACHE[chainId] = provider;
+  return provider;
+}
+
+export async function getWallet(chainId: SupportedChainId) {
+  return new ethers.Wallet(getPk(), await getRpcProvider(chainId));
 }
 
 export function getPk() {
