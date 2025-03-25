@@ -8,6 +8,7 @@ import {
   OrderKind,
   isBridgeQuoteAndPost,
   AccountAddress,
+  TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
 
@@ -36,6 +37,7 @@ export async function run() {
   // Initialize the SDK with the wallet
   const sdk = new BridgingSdk({
     providers: [acrossBridgeProvider],
+    tradingSdk: new TradingSdk({}, { enableLogging: true }),
   });
 
   const parameters: QuoteBridgeRequest = {
