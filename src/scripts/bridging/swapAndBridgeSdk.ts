@@ -6,13 +6,16 @@ import {
   AcrossBridgeProvider,
   QuoteBridgeRequest,
   OrderKind,
-  isBridgeQuoteAndPost,
   AccountAddress,
-  TradingSdk,
+  assertIsBridgeQuoteAndPost,
+  getChainInfo,
+  BridgeQuoteAndPost,
 } from "@cowprotocol/cow-sdk";
+
 import { ethers } from "ethers";
 
-import { confirm, getWallet, jsonReplacer } from "../../utils";
+import { confirm, getRpcProvider, getWallet, jsonReplacer } from "../../utils";
+import { getErc20Contract } from "../../contracts/erc20";
 
 export async function run() {
   // Sell token (USDC in Arbitrum)
@@ -37,7 +40,8 @@ export async function run() {
   // Initialize the SDK with the wallet
   const sdk = new BridgingSdk({
     providers: [acrossBridgeProvider],
-    tradingSdk: new TradingSdk({}, { enableLogging: true }),
+    enableLogging: true,
+    // tradingSdk: new TradingSdk({}, { enableLogging: true }),
   });
 
   const parameters: QuoteBridgeRequest = {
@@ -52,7 +56,6 @@ export async function run() {
     buyTokenDecimals,
 
     amount: sellAmount,
-    appCode: APP_CODE,
 
     // TODO: Sort this mess
     receiver: wallet.address,
@@ -61,68 +64,53 @@ export async function run() {
 
     partiallyFillable: false,
     slippageBps: 50,
+    appCode: APP_CODE,
   };
 
+  const { signer, ...restParameters } = parameters;
   console.log(
     "🕣 Getting quote...",
-    JSON.stringify(parameters, jsonReplacer, 2)
+    JSON.stringify(restParameters, jsonReplacer, 2)
   );
 
   const quote = await sdk.getQuote(parameters);
-  if (!isBridgeQuoteAndPost(quote))
-    throw new Error("Quote is not a bridge quote");
+  assertIsBridgeQuoteAndPost(quote);
 
-  // After the assertion, we can safely destructure the quote
-  const { postSwapOrderFromQuote, bridge, swap } = quote;
+  // Get the symbols for the tokens
+  const sourceChainProvider = await getRpcProvider(parameters.sellTokenChainId);
+  const targetChainProvider = await getRpcProvider(parameters.buyTokenChainId);
+  const sellTokenSymbol = await getErc20Contract(
+    quote.swap.tradeParameters.sellToken,
+    sourceChainProvider
+  ).symbol();
+  const intermediateSymbol = await getErc20Contract(
+    quote.swap.tradeParameters.buyToken,
+    sourceChainProvider
+  ).symbol();
+  const buyTokenSymbol = await getErc20Contract(
+    quote.bridge.tradeParameters.buyTokenAddress,
+    targetChainProvider
+  ).symbol();
 
-  const swapAmount = swap.amountsAndCosts;
-  const bridgeAmount = bridge.amountsAndCosts;
+  // Print the quote
+  const quoteString = await formatQuote({
+    parameters,
+    quote,
+    sellTokenSymbol,
+    intermediateSymbol,
+    buyTokenSymbol,
+  });
+  console.log(quoteString);
 
-  console.log(`
-Swap details:
-  - Sell
-      - Token: ${swap.tradeParameters.sellToken} (${
-    swap.tradeParameters.sellTokenDecimals
-  })
-      - Amount: ${swapAmount.afterNetworkCosts.sellAmount}
-  - Buy (intermediate token))
-      - Token: ${swap.tradeParameters.buyToken} (${
-    swap.tradeParameters.buyTokenDecimals
-  })
-      - Est. Receive: ${swapAmount.afterPartnerFees.buyAmount}
-      - Min. Receive: ${swapAmount.afterSlippage.buyAmount}
-  - Network fee: ${swapAmount.costs.networkFee}
-  - Slippage: ${swap.tradeParameters.slippageBps ?? "default"}
-  - Receiver: ${swap.tradeParameters.receiver}
-
-Bridge details:
-   - Bridge provider:
-       - Name: ${bridge.providerInfo.name}
-       - Logo: ${bridge.providerInfo.logoUrl}
-   - Bridged token (intermediate token)
-       - Token: ${bridge.tradeParameters.sellTokenAddress} (${
-    bridge.tradeParameters.sellTokenDecimals
-  })
-       - Amount: ${bridgeAmount.beforeFee.sellAmount}
-   - Buy:
-       - Token: ${bridge.tradeParameters.buyTokenAddress} (${
-    bridge.tradeParameters.buyTokenDecimals
-  })
-       - Est. Receive (buy token): ${bridgeAmount.afterFee.buyAmount}
-       - Min. Receive (buy token): ${bridgeAmount.afterSlippage.buyAmount}
-   - Bridging fee: ${bridgeAmount.costs.bridgingFee}
-   - Slippage: ${bridgeAmount.slippageBps}
-   - Recipient: ${bridge.tradeParameters.receiver}
-`);
-
-  const sellAmountFormatted = ethers.utils.formatUnits(
+  const sellAmountFormatted = formatAmount(
     sellAmount,
-    sellTokenDecimals
+    sellTokenDecimals,
+    sellTokenSymbol
   );
-
-  const minReceiveBuyToken = ethers.utils.formatUnits(
-    bridgeAmount.afterSlippage.buyAmount,
-    buyTokenDecimals
+  const minReceiveBuyToken = formatAmount(
+    quote.bridge.amountsAndCosts.afterSlippage.buyAmount,
+    buyTokenDecimals,
+    buyTokenSymbol
   );
 
   const confirmed = await confirm(
@@ -134,7 +122,7 @@ Bridge details:
   }
 
   // Post the order
-  const orderId = await postSwapOrderFromQuote();
+  const orderId = await quote.postSwapOrderFromQuote();
 
   // Print the order creation
   console.log(
@@ -151,4 +139,132 @@ Bridge details:
   // TODO: Implement
 
   console.log(`🎉 The WETH is now waiting for you in Base`);
+}
+
+async function formatQuote(params: {
+  parameters: QuoteBridgeRequest;
+  quote: BridgeQuoteAndPost;
+  sellTokenSymbol: string;
+  intermediateSymbol: string;
+  buyTokenSymbol: string;
+}): Promise<string> {
+  const {
+    parameters,
+    quote,
+    sellTokenSymbol,
+    intermediateSymbol,
+    buyTokenSymbol,
+  } = params;
+  const { bridge, swap } = quote;
+
+  const swapAmount = swap.amountsAndCosts;
+  const bridgeAmount = bridge.amountsAndCosts;
+
+  return `
+Swap details:
+  - Trader: ${parameters.account}
+  - Sell
+      - Chain: ${formatChainId(parameters.sellTokenChainId)}
+      - Token: ${formatToken(
+        swap.tradeParameters.sellToken,
+        swap.tradeParameters.sellTokenDecimals,
+        sellTokenSymbol
+      )}
+      - Amount: ${formatAmount(
+        swapAmount.afterNetworkCosts.sellAmount,
+        swap.tradeParameters.sellTokenDecimals,
+        sellTokenSymbol
+      )}
+  - Buy (intermediate token)
+      - Chain: ${formatChainId(parameters.sellTokenChainId)}
+      - Token: ${formatToken(
+        swap.tradeParameters.buyToken,
+        swap.tradeParameters.buyTokenDecimals,
+        intermediateSymbol
+      )}
+      - Est. Receive: ${formatAmount(
+        swapAmount.afterPartnerFees.buyAmount,
+        swap.tradeParameters.buyTokenDecimals,
+        intermediateSymbol
+      )}
+      - Min. Receive: ${formatAmount(
+        swapAmount.afterSlippage.buyAmount,
+        swap.tradeParameters.buyTokenDecimals,
+        intermediateSymbol
+      )}
+  - Network fee:
+      - in sell token: ${formatAmount(
+        swapAmount.costs.networkFee.amountInSellCurrency,
+        swap.tradeParameters.sellTokenDecimals,
+        sellTokenSymbol
+      )}
+      - in buy token: ${formatAmount(
+        swapAmount.costs.networkFee.amountInBuyCurrency,
+        swap.tradeParameters.buyTokenDecimals,
+        intermediateSymbol
+      )}
+  - Slippage: ${swap.tradeParameters.slippageBps ?? "default"}
+  - Receiver (cow-shed): ${swap.tradeParameters.receiver}
+
+Bridge details:
+   - Bridge provider:
+       - Name: ${bridge.providerInfo.name}
+       - Logo: ${bridge.providerInfo.logoUrl}
+   - Bridged token (intermediate token)
+       - Chain: ${formatChainId(bridge.tradeParameters.sellTokenChainId)}
+       - Token: ${formatToken(
+         bridge.tradeParameters.sellTokenAddress,
+         bridge.tradeParameters.sellTokenDecimals,
+         intermediateSymbol
+       )}       
+       - Amount: ${formatAmount(
+         bridgeAmount.beforeFee.sellAmount,
+         bridge.tradeParameters.sellTokenDecimals,
+         intermediateSymbol
+       )}
+   - Buy:
+       - Chain: ${formatChainId(bridge.tradeParameters.buyTokenChainId)}
+       - Token: ${formatToken(
+         bridge.tradeParameters.buyTokenAddress,
+         bridge.tradeParameters.buyTokenDecimals,
+         buyTokenSymbol
+       )}       
+       - Est. Receive (buy token): ${formatAmount(
+         bridgeAmount.afterFee.buyAmount,
+         bridge.tradeParameters.buyTokenDecimals,
+         buyTokenSymbol
+       )}
+       - Min. Receive (buy token): ${formatAmount(
+         bridgeAmount.afterSlippage.buyAmount,
+         bridge.tradeParameters.buyTokenDecimals,
+         buyTokenSymbol
+       )}
+   - Bridging fee:
+       - Fee: ${bridgeAmount.costs.bridgingFee.feeBps} BPS
+       - in sell token: ${formatAmount(
+         bridgeAmount.costs.bridgingFee.amountInSellCurrency,
+         bridge.tradeParameters.sellTokenDecimals,
+         intermediateSymbol
+       )}
+       - in buy token: ${formatAmount(
+         bridgeAmount.costs.bridgingFee.amountInBuyCurrency,
+         bridge.tradeParameters.buyTokenDecimals,
+         buyTokenSymbol
+       )}
+   - Slippage: ${bridgeAmount.slippageBps}
+   - Recipient (trader): ${bridge.tradeParameters.receiver}
+`;
+}
+
+function formatChainId(chainId: number) {
+  const chainInfo = getChainInfo(chainId);
+  return `${chainInfo ? chainInfo.label : "UNKNOWN CHAIN"} (${chainId})`;
+}
+
+function formatToken(address: string, decimals: number, symbol: string) {
+  return `${symbol} (${address}, decimals: ${decimals})`;
+}
+
+function formatAmount(amount: bigint, decimals: number, symbol: string) {
+  return `${ethers.utils.formatUnits(amount, decimals)} ${symbol} (${amount})`;
 }

@@ -69,9 +69,9 @@ const JOBS: (() => Promise<unknown>)[] = [
   // swapAndBridgeAccrossArbitrum,
   // swapAndBridgeAccrossMainnet,
 
-  // swapAndBridgeSdk,
+  swapAndBridgeSdk,
   // getOrderbookQuote,
-  getOrderbookQuoteWithAppData,
+  // getOrderbookQuoteWithAppData,
   // getTradingQuote,
 ];
 
