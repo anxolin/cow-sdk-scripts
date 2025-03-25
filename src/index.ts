@@ -28,7 +28,8 @@ import { run as approveTokenArbitrum } from "./scripts/arbitrum/approveTokenArbi
 import { run as swapAndBridgeAccrossArbitrum } from "./scripts/bridging/swapAndBridgeAccrossArbitrum";
 import { run as swapAndBridgeAccrossMainnet } from "./scripts/bridging/swapAndBridgeAccrossMainnet";
 import { run as swapAndBridgeSdk } from "./scripts/bridging/swapAndBridgeSdk";
-import { run as getQuote } from "./orderbook/getQuote";
+import { run as getOrderbookQuote } from "./orderbook/getQuote";
+import { run as getTradingQuote } from "./scripts/trading/getQuote";
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
@@ -68,7 +69,8 @@ const JOBS: (() => Promise<unknown>)[] = [
   // swapAndBridgeAccrossMainnet,
 
   // swapAndBridgeSdk,
-  getQuote,
+  // getOrderbookQuote,
+  getTradingQuote,
 ];
 
 async function main() {
