@@ -29,6 +29,7 @@ import { run as swapAndBridgeAccrossArbitrum } from "./scripts/bridging/swapAndB
 import { run as swapAndBridgeAccrossMainnet } from "./scripts/bridging/swapAndBridgeAccrossMainnet";
 import { run as swapAndBridgeSdk } from "./scripts/bridging/swapAndBridgeSdk";
 import { run as getOrderbookQuote } from "./orderbook/getQuote";
+import { run as getOrderbookQuoteWithAppData } from "./orderbook/getQuoteWithAppData";
 import { run as getTradingQuote } from "./scripts/trading/getQuote";
 dotenv.config();
 
@@ -70,7 +71,8 @@ const JOBS: (() => Promise<unknown>)[] = [
 
   // swapAndBridgeSdk,
   // getOrderbookQuote,
-  getTradingQuote,
+  getOrderbookQuoteWithAppData,
+  // getTradingQuote,
 ];
 
 async function main() {

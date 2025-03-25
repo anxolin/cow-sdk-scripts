@@ -4,15 +4,27 @@ import {
   PriceQuality,
   SigningScheme,
   SupportedChainId,
-  enableLogging,
+  buildAppData,
+  generateAppDataFromDoc,
 } from "@cowprotocol/cow-sdk";
+import { APP_CODE } from "../const";
 
 export async function run() {
   const orderBookApi = new OrderBookApi({
     chainId: SupportedChainId.ARBITRUM_ONE,
   });
 
-  enableLogging(true);
+  const kind = OrderQuoteSideKindSell.SELL;
+
+  // const appData = await buildAppData({
+  //   appCode: APP_CODE,
+  //   orderClass: "market",
+  //   slippageBps: 100,
+  //   partnerFee: {
+  //     bps: 50,
+  //     recipient: "0x016f34D4f2578c3e9DFfC3f2b811Ba30c0c9e7f3",
+  //   },
+  // });
 
   const quote = await orderBookApi.getQuote({
     kind: OrderQuoteSideKindSell.SELL,
@@ -24,6 +36,10 @@ export async function run() {
     priceQuality: PriceQuality.OPTIMAL,
     signingScheme: SigningScheme.EIP712,
     sellAmountBeforeFee: "5000000",
+    appData:
+      '{"appCode":"swap-n-bridge","metadata":{"hooks":{"post":[{"callData":"0x00","gasLimit":"110000","target":"0x0000000000000000000000000000000000000000"}]}},"version":"1.3.0"}',
+    appDataHash:
+      "0xc23b1518b9946714c0d396392a308bbbc5cf3a19a0bcace01ef9a8d222ca5f95",
   });
 
   console.log("quote result", quote);

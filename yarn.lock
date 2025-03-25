@@ -42,10 +42,10 @@
   resolved "https://registry.npmjs.org/@cowprotocol/contracts/-/contracts-1.7.0.tgz"
   integrity sha512-tog/0igLaWZv6kK30+aFJ267+yNyMINx6qDHaJQFKZs051XUXnzNFlZgCEfICwDz/821XYjZxOnNbe449tgD5w==
 
-"@cowprotocol/cow-sdk@6.0.0-RC.13":
-  version "6.0.0-RC.13"
-  resolved "https://registry.yarnpkg.com/@cowprotocol/cow-sdk/-/cow-sdk-6.0.0-RC.13.tgz#fd7f98d0a0e1ad5558d7c5e28b27a65d3fc6ae1b"
-  integrity sha512-Og3ql7eb26CW1b/Lur4W8CqaI9E3KHA+OrqIapTMR6PyLqwhM4kU5r5epJ4iiXN3cww6/BTfuqPllknTcESr/w==
+"@cowprotocol/cow-sdk@6.0.0-RC.16":
+  version "6.0.0-RC.16"
+  resolved "https://registry.yarnpkg.com/@cowprotocol/cow-sdk/-/cow-sdk-6.0.0-RC.16.tgz#59a7ee0228a6fd5a3c236e2e6da8f764338c0a33"
+  integrity sha512-tuGsVtNatqM9+sPJvRb4oBHnVxKX+h6+VP4pJxBvd3HxL9kAgBIf8HcOa1BDWupWHd2Uo3QWdXFdjuJI/azisg==
   dependencies:
     "@cowprotocol/app-data" "^2.4.0"
     "@cowprotocol/contracts" "^1.6.0"
