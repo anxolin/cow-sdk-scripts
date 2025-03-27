@@ -31,6 +31,7 @@ import { run as swapAndBridgeSdk } from "./scripts/bridging/swapAndBridgeSdk";
 import { run as getOrderbookQuote } from "./orderbook/getQuote";
 import { run as getOrderbookQuoteWithAppData } from "./orderbook/getQuoteWithAppData";
 import { run as getTradingQuote } from "./scripts/trading/getQuote";
+import { run as getAcrossBridgingId } from "./scripts/bridging/getAcrossBridgingId";
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
@@ -69,10 +70,12 @@ const JOBS: (() => Promise<unknown>)[] = [
   // swapAndBridgeAccrossArbitrum,
   // swapAndBridgeAccrossMainnet,
 
-  swapAndBridgeSdk,
+  // swapAndBridgeSdk,
   // getOrderbookQuote,
   // getOrderbookQuoteWithAppData,
   // getTradingQuote,
+
+  getAcrossBridgingId,
 ];
 
 async function main() {
