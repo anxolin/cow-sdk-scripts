@@ -92,7 +92,7 @@ export async function bridgeWithBungee(
     amount: route.fromAmount,
     recipient: route.recipient,
     toChainId: targetChain.toString(),
-    token: targetToken,
+    token: sourceToken,
     signature: socketBridgeFunctionSignatures[includeBridges[0]],
   };
   await verifyBungeeTxData(
