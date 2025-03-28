@@ -1,8 +1,37 @@
 import { SupportedChainId } from '@cowprotocol/cow-sdk';
 import axios, { isAxiosError } from 'axios';
-import { BungeeBuildTxResponse, BungeeQuoteResponse, Route } from './types';
+import { ethers } from 'ethers';
+import { getWallet } from '../../utils';
+import {
+  BungeeBuildTxResponse,
+  BungeeQuoteResponse,
+  Route,
+  SocketRequest,
+  socketVerifierAbi,
+  UserRequestValidation,
+} from './types';
 
 const API_KEY = '72a5b4b0-e727-48be-8aa1-5da9d62fe635'; // SOCKET PUBLIC API KEY from docs
+
+/**
+ * bridgeErc20To() function signatures for each bridge
+ */
+export const socketBridgeFunctionSignatures: Record<string, string> = {
+  ['across']: '0x792ebcb9',
+  ['cctp']: '0xb7dfe9d0',
+};
+
+// TODO: deploy socket verifier contracts for all chains
+export const socketVerifierMapping: Record<
+  SupportedChainId,
+  string | undefined
+> = {
+  [SupportedChainId.MAINNET]: undefined,
+  [SupportedChainId.GNOSIS_CHAIN]: undefined,
+  [SupportedChainId.ARBITRUM_ONE]: '0x69D9f76e4cbE81044FE16C399387b12e4DBF27B1',
+  [SupportedChainId.BASE]: undefined,
+  [SupportedChainId.SEPOLIA]: undefined,
+};
 
 export const socketGatewayMapping: Record<
   SupportedChainId,
@@ -103,4 +132,47 @@ export const decodeBungeeTxData = (txData: string) => {
   // rest is the encoded function data
   const encodedFunctionData = `0x${txDataWithout0x.slice(8)}`;
   return { routeId, encodedFunctionData };
+};
+
+export const verifyBungeeTxData = async (
+  chainId: SupportedChainId,
+  txData: string,
+  routeId: string,
+  expectedSocketRequest: SocketRequest
+) => {
+  const socketVerifierAddress = socketVerifierMapping[chainId];
+  if (!socketVerifierAddress) {
+    throw new Error(`Socket verifier not found for chainId: ${chainId}`);
+  }
+  const wallet = await getWallet(chainId);
+
+  const socketVerifier = new ethers.Contract(
+    socketVerifierAddress,
+    socketVerifierAbi,
+    wallet
+  );
+
+  // should not revert
+  try {
+    await socketVerifier.validateRotueId(txData, routeId);
+  } catch (error) {
+    console.error('🔴 Error validating routeId:', error);
+    throw error;
+  }
+
+  const expectedUserRequestValidation: UserRequestValidation = {
+    routeId,
+    socketRequest: expectedSocketRequest,
+  };
+
+  // should not revert
+  try {
+    await socketVerifier.validateSocketRequest(
+      txData,
+      expectedUserRequestValidation
+    );
+  } catch (error) {
+    console.error('🔴 Error validating socket request:', error);
+    throw error;
+  }
 };

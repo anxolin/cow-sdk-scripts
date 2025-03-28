@@ -9,11 +9,13 @@ import { getWallet } from '../../utils';
 import { getCowShedAccount } from '../cowShed';
 import { getErc20Contract } from '../erc20';
 import { CommandFlags, getWeirollTx } from '../weiroll';
-import { bytesLibAbi, socketGatewayAbi } from './types';
+import { bytesLibAbi, socketGatewayAbi, SocketRequest } from './types';
 import {
   decodeBungeeTxData,
   getBungeeQuote,
   getBungeeRouteTransactionData,
+  socketBridgeFunctionSignatures,
+  verifyBungeeTxData,
 } from './utils';
 
 export interface BridgeWithBungeeParams {
@@ -83,6 +85,21 @@ export async function bridgeWithBungee(
   const txData = await getBungeeRouteTransactionData(route);
   const { routeId, encodedFunctionData } = decodeBungeeTxData(
     txData.result.txData
+  );
+
+  // validate bungee tx data returned from socket API using SocketVerifier contract
+  const expectedSocketRequest: SocketRequest = {
+    amount: route.fromAmount,
+    recipient: route.recipient,
+    toChainId: targetChain.toString(),
+    token: targetToken,
+    signature: socketBridgeFunctionSignatures[includeBridges[0]],
+  };
+  await verifyBungeeTxData(
+    sourceChain,
+    txData.result.txData,
+    routeId,
+    expectedSocketRequest
   );
 
   // Create bridged token contract

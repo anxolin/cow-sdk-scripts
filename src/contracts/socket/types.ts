@@ -616,3 +616,203 @@ export const socketGatewayAbi = [
   },
   { stateMutability: 'payable', type: 'receive' },
 ];
+
+export const socketVerifierAbi = [
+  {
+    type: 'constructor',
+    inputs: [
+      { name: '_owner', type: 'address', internalType: 'address' },
+      {
+        name: '_socketGateway',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'addVerifier',
+    inputs: [
+      { name: 'routeId', type: 'uint32', internalType: 'uint32' },
+      { name: 'verifier', type: 'address', internalType: 'address' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'claimOwner',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'nominateOwner',
+    inputs: [{ name: 'nominee_', type: 'address', internalType: 'address' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'nominee',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'owner',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'parseCallData',
+    inputs: [{ name: 'callData', type: 'bytes', internalType: 'bytes' }],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        internalType: 'struct SocketVerifier.UserRequest',
+        components: [
+          { name: 'routeId', type: 'uint32', internalType: 'uint32' },
+          {
+            name: 'socketRequest',
+            type: 'bytes',
+            internalType: 'bytes',
+          },
+        ],
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'routeIdsToVerifiers',
+    inputs: [{ name: '', type: 'uint32', internalType: 'uint32' }],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'socketGateway',
+    inputs: [],
+    outputs: [{ name: '', type: 'address', internalType: 'address' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'validateRotueId',
+    inputs: [
+      { name: 'callData', type: 'bytes', internalType: 'bytes' },
+      {
+        name: 'expectedRouteId',
+        type: 'uint32',
+        internalType: 'uint32',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'validateSocketRequest',
+    inputs: [
+      { name: 'callData', type: 'bytes', internalType: 'bytes' },
+      {
+        name: 'expectedRequest',
+        type: 'tuple',
+        internalType: 'struct SocketVerifier.UserRequestValidation',
+        components: [
+          { name: 'routeId', type: 'uint32', internalType: 'uint32' },
+          {
+            name: 'socketRequest',
+            type: 'tuple',
+            internalType: 'struct SocketVerifier.SocketRequest',
+            components: [
+              {
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'recipient',
+                type: 'address',
+                internalType: 'address',
+              },
+              {
+                name: 'toChainId',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
+              },
+              {
+                name: 'signature',
+                type: 'bytes4',
+                internalType: 'bytes4',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'event',
+    name: 'OwnerClaimed',
+    inputs: [
+      {
+        name: 'claimer',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OwnerNominated',
+    inputs: [
+      {
+        name: 'nominee',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+    ],
+    anonymous: false,
+  },
+  { type: 'error', name: 'AmountNotMatched', inputs: [] },
+  { type: 'error', name: 'FailedToVerify', inputs: [] },
+  { type: 'error', name: 'OnlyNominee', inputs: [] },
+  { type: 'error', name: 'OnlyOwner', inputs: [] },
+  { type: 'error', name: 'RecipientNotMatched', inputs: [] },
+  { type: 'error', name: 'RouteIdNotFound', inputs: [] },
+  { type: 'error', name: 'RouteIdNotMatched', inputs: [] },
+  { type: 'error', name: 'SignatureNotMatched', inputs: [] },
+  { type: 'error', name: 'ToChainIdNotMatched', inputs: [] },
+  { type: 'error', name: 'TokenNotMatched', inputs: [] },
+];
+
+export type SocketRequest = {
+  amount: string;
+  recipient: string;
+  toChainId: string;
+  token: string;
+  signature: string;
+};
+
+export type UserRequestValidation = {
+  routeId: string;
+  socketRequest: SocketRequest;
+};
