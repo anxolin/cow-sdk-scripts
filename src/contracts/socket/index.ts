@@ -66,7 +66,7 @@ export async function bridgeWithBungee(
   if (!quote) {
     throw new Error('No quote found');
   }
-  console.log('🔗 Socket quote:', quote);
+  console.log('🔗 Socket quote:', quote.result.routes);
   // check if routes are found
   if (!quote.result.routes.length) {
     throw new Error('No routes found');
@@ -86,6 +86,8 @@ export async function bridgeWithBungee(
   const { routeId, encodedFunctionData } = decodeBungeeTxData(
     txData.result.txData
   );
+  console.log('🔗 Socket txData:', txData.result.txData);
+  console.log('🔗 Socket routeId:', routeId);
 
   // validate bungee tx data returned from socket API using SocketVerifier contract
   const expectedSocketRequest: SocketRequest = {

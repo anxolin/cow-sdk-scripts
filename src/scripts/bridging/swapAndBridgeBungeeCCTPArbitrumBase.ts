@@ -41,15 +41,19 @@ export async function run() {
    */
   const sourceChain = SupportedChainId.ARBITRUM_ONE;
   const targetChain = SupportedChainId.BASE;
-  const sellToken = arbitrum.USDT_ADDRESS;
-  const sellTokenDecimals = 6;
-  const sellAmount = ethers.utils.parseUnits('1', sellTokenDecimals).toString();
-  const buyToken = base.USDC_ADDRESS;
-  const buyTokenDecimals = 6;
 
   const wallet = await getWallet(sourceChain);
   const walletAddress = await wallet.getAddress();
   console.log('🔑 Wallet address:', walletAddress);
+  
+  const sellToken = arbitrum.USDT_ADDRESS;
+  const sellTokenContract = getErc20Contract(sellToken, wallet);
+  const sellTokenDecimals = await sellTokenContract.decimals();
+  const sellAmount = ethers.utils.parseUnits('1', sellTokenDecimals).toString();
+  const buyToken = base.USDC_ADDRESS;
+  const buyTokenContract = getErc20Contract(buyToken, await getWallet(targetChain));
+  const buyTokenDecimals = await buyTokenContract.decimals();
+
 
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
@@ -175,7 +179,6 @@ export async function run() {
 
   // check owner allowance to VaultRelayer
   const vaultRelayerContract = COW_PROTOCOL_VAULT_RELAYER_ADDRESS[sourceChain];
-  const sellTokenContract = getErc20Contract(sellToken, wallet);
   const sellTokenAllowance = await sellTokenContract.allowance(
     walletAddress,
     vaultRelayerContract

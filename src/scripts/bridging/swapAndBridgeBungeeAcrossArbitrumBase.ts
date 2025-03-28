@@ -30,13 +30,22 @@ export async function run() {
   console.log('🔑 Wallet address:', walletAddress);
 
   const sellToken = arbitrum.USDT_ADDRESS;
-  const sellTokenDecimals = await getErc20Contract(sellToken, wallet).decimals();
+  const sellTokenDecimals = await getErc20Contract(
+    sellToken,
+    wallet
+  ).decimals();
   const sellTokenSymbol = await getErc20Contract(sellToken, wallet).symbol();
 
   const sellAmount = ethers.utils.parseUnits('1', sellTokenDecimals).toString();
   const buyToken = base.USDC_ADDRESS;
-  const buyTokenDecimals = await getErc20Contract(buyToken, wallet).decimals();
-  const buyTokenSymbol = await getErc20Contract(buyToken, wallet).symbol();
+  const buyTokenDecimals = await getErc20Contract(
+    buyToken,
+    await getWallet(targetChain)
+  ).decimals();
+  const buyTokenSymbol = await getErc20Contract(
+    buyToken,
+    await getWallet(targetChain)
+  ).symbol();
 
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
@@ -66,7 +75,7 @@ export async function run() {
   const intermediateTokenAmount =
     quote.quoteResults.amountsAndCosts.afterSlippage.buyAmount;
 
-  console.log('quote', JSON.stringify(quote, jsonReplacer, 2));
+  // console.log('quote', JSON.stringify(quote, jsonReplacer, 2));
 
   // Get raw transaction to bridge all available DAI from cow-shed using xDAI Bridge
   const bridgeWithBungeeTx = await bridgeWithBungee({
