@@ -21,17 +21,22 @@ export async function run() {
    * Swap from USDT to USDC on Arbitrum,
    * then bridge USDC to Base using Socket CCTP
    */
+
   const sourceChain = SupportedChainId.ARBITRUM_ONE;
   const targetChain = SupportedChainId.BASE;
-  const sellToken = arbitrum.USDT_ADDRESS;
-  const sellTokenDecimals = 6;
-  const sellAmount = ethers.utils.parseUnits('1', sellTokenDecimals).toString();
-  const buyToken = base.USDC_ADDRESS;
-  const buyTokenDecimals = 6;
 
   const wallet = await getWallet(sourceChain);
   const walletAddress = await wallet.getAddress();
   console.log('🔑 Wallet address:', walletAddress);
+
+  const sellToken = arbitrum.USDT_ADDRESS;
+  const sellTokenDecimals = await getErc20Contract(sellToken, wallet).decimals();
+  const sellTokenSymbol = await getErc20Contract(sellToken, wallet).symbol();
+
+  const sellAmount = ethers.utils.parseUnits('1', sellTokenDecimals).toString();
+  const buyToken = base.USDC_ADDRESS;
+  const buyTokenDecimals = await getErc20Contract(buyToken, wallet).decimals();
+  const buyTokenSymbol = await getErc20Contract(buyToken, wallet).symbol();
 
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
@@ -144,7 +149,7 @@ export async function run() {
   );
 
   console.log(
-    `You will sell ${sellAmountFormatted} USDC and receive at least ${minIntermediateTokenAmountFormatted} ${intermediateTokenSymbol} (intermediate token). Then, it will be bridged to Base for USDC via CCTP via Socket.`
+    `You will sell ${sellAmountFormatted} ${sellTokenSymbol} and receive at least ${minIntermediateTokenAmountFormatted} ${intermediateTokenSymbol} (intermediate token). Then, it will be bridged to Base for ${buyTokenSymbol} via Across via Socket.`
   );
 
   const confirmed = await confirm(
