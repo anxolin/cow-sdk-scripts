@@ -10,7 +10,7 @@ import {
 import { ethers } from 'ethers';
 
 import { MetadataApi } from '@cowprotocol/app-data';
-import { createCowShedTx } from '../../contracts/cowShed';
+import { createCowShedTx, getCowShedHooks } from '../../contracts/cowShed';
 import { confirm, getWallet, jsonReplacer } from '../../utils';
 
 import { getErc20Contract } from '../../contracts/erc20';
@@ -47,13 +47,22 @@ export async function run() {
   console.log('🔑 Wallet address:', walletAddress);
   
   const sellToken = arbitrum.USDT_ADDRESS;
-  const sellTokenContract = getErc20Contract(sellToken, wallet);
-  const sellTokenDecimals = await sellTokenContract.decimals();
+  const sellTokenDecimals = await getErc20Contract(
+    sellToken,
+    wallet
+  ).decimals();
+  const sellTokenSymbol = await getErc20Contract(sellToken, wallet).symbol();
+
   const sellAmount = ethers.utils.parseUnits('1', sellTokenDecimals).toString();
   const buyToken = base.USDC_ADDRESS;
-  const buyTokenContract = getErc20Contract(buyToken, await getWallet(targetChain));
-  const buyTokenDecimals = await buyTokenContract.decimals();
-
+  const buyTokenDecimals = await getErc20Contract(
+    buyToken,
+    await getWallet(targetChain)
+  ).decimals();
+  const buyTokenSymbol = await getErc20Contract(
+    buyToken,
+    await getWallet(targetChain)
+  ).symbol();
 
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
@@ -71,19 +80,22 @@ export async function run() {
   const intermediateTokenSymbol = await intermediateTokenContract.symbol();
 
   // Estimate how many intermediate tokens we can bridge
+  const cowShedHooks = getCowShedHooks(sourceChain);
+  const cowShedAccount = cowShedHooks.proxyOf(wallet.address);
   let quote = await sdk.getQuote({
     kind: OrderKind.SELL,
+    amount: sellAmount,
     sellToken,
     sellTokenDecimals,
     buyToken: intermediaryToken,
-    buyTokenDecimals,
-    receiver: wallet.address,
-    amount: sellAmount,
+    buyTokenDecimals: intermediateTokenDecimals,
+    partiallyFillable: false, // Fill or Kill
+    receiver: cowShedAccount,
   });
   const intermediateTokenAmount =
     quote.quoteResults.amountsAndCosts.afterSlippage.buyAmount;
 
-  console.log('quote', JSON.stringify(quote, jsonReplacer, 2));
+  // console.log('quote', JSON.stringify(quote, jsonReplacer, 2));
 
   // Get raw transaction to bridge all available DAI from cow-shed using xDAI Bridge
   const bridgeWithBungeeTx = await bridgeWithBungee({
@@ -103,11 +115,8 @@ export async function run() {
   );
 
   // Sign and encode the transaction
-  const {
-    cowShedAccount,
-    preAuthenticatedTx: authenticatedBridgeTx,
-    gasLimit,
-  } = await createCowShedTx({
+  const { preAuthenticatedTx: authenticatedBridgeTx, gasLimit } =
+    await createCowShedTx({
     tx: bridgeWithBungeeTx,
     chainId: sourceChain,
     wallet,
@@ -118,7 +127,7 @@ export async function run() {
     kind: OrderKind.SELL, // Sell
     amount: sellAmount,
     sellToken,
-    sellTokenDecimals: sellTokenDecimals,
+    sellTokenDecimals,
     buyToken: intermediaryToken,
     buyTokenDecimals: intermediateTokenDecimals,
     partiallyFillable: false, // Fill or Kill
@@ -166,7 +175,7 @@ export async function run() {
   );
 
   console.log(
-    `You will sell ${sellAmountFormatted} USDC and receive at least ${minIntermediateTokenAmountFormatted} ${intermediateTokenSymbol} (intermediate token). Then, it will be bridged to Base for USDC via CCTP via Socket.`
+    `You will sell ${sellAmountFormatted} ${sellTokenSymbol} and receive at least ${minIntermediateTokenAmountFormatted} ${intermediateTokenSymbol} (intermediate token). Then, it will be bridged to Base for ${buyTokenSymbol} via Across via Socket.`
   );
 
   const confirmed = await confirm(
@@ -179,6 +188,7 @@ export async function run() {
 
   // check owner allowance to VaultRelayer
   const vaultRelayerContract = COW_PROTOCOL_VAULT_RELAYER_ADDRESS[sourceChain];
+  const sellTokenContract = getErc20Contract(sellToken, wallet);
   const sellTokenAllowance = await sellTokenContract.allowance(
     walletAddress,
     vaultRelayerContract
@@ -214,15 +224,6 @@ export async function run() {
   console.log(
     `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`
   );
-
-  // Wait for the bridge start
-  console.log('🕣 Waiting for the bridge to start...');
-  console.log('🔗 Socket link: <URL>');
-  // TODO: Implement
-
-  // Wait for the bridging to be completed
-  console.log('🕣 Waiting for the bridging to be completed...');
-  // TODO: Implement
 
   console.log(`🎉 The USDC is now waiting for you in Base`);
 }
