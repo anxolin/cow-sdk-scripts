@@ -20,7 +20,7 @@ export interface CowShedTx {
   gasLimit: bigint;
 }
 
-function getCowShedHooks(chainId: SupportedChainId) {
+export function getCowShedHooks(chainId: SupportedChainId) {
   let cowShedHooks = COW_SHED_CACHE.get(chainId)!;
 
   if (cowShedHooks) {
