@@ -26,7 +26,7 @@ export interface BridgeWithBungeeParams {
   targetToken: string;
   targetChain: number;
   recipient: string;
-  includeBridges: string[];
+  useBridge: 'cctp' | 'across';
 }
 
 export async function bridgeWithBungee(
@@ -40,7 +40,7 @@ export async function bridgeWithBungee(
     targetChain,
     targetToken,
     recipient,
-    includeBridges,
+    useBridge,
   } = params;
 
   // Get cow-shed account
@@ -61,7 +61,7 @@ export async function bridgeWithBungee(
     singleTxOnly: true, // should be only single txn on src chain, no destination chain txn
     isContractCall: true, // get quotes that are compatible with contracts
     disableSwapping: true, // should not show routes that require swapping
-    includeBridges,
+    includeBridges: [useBridge],
   });
   if (!quote) {
     throw new Error('No quote found');
@@ -95,7 +95,7 @@ export async function bridgeWithBungee(
     recipient: route.recipient,
     toChainId: targetChain.toString(),
     token: sourceToken,
-    signature: socketBridgeFunctionSignatures[includeBridges[0]],
+    signature: socketBridgeFunctionSignatures[useBridge],
   };
   await verifyBungeeTxData(
     sourceChain,

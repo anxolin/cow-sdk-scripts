@@ -89,7 +89,7 @@ export async function run() {
     targetChain: targetChain,
     targetToken: buyToken,
     recipient: wallet.address,
-    includeBridges: ['across'],
+    useBridge: 'across',
   });
 
   console.log(

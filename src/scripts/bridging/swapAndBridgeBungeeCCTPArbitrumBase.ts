@@ -106,7 +106,7 @@ export async function run() {
     targetChain: targetChain,
     targetToken: buyToken,
     recipient: wallet.address,
-    includeBridges: ['cctp'],
+    useBridge: 'cctp',
   });
 
   console.log(
