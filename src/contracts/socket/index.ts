@@ -168,6 +168,42 @@ export async function bridgeWithBungee(
     )
   );
 
+  // if bridge is across, update the output amount based on pctDiff of the new balance
+  if (useBridge === 'across') {
+    // current input amount
+    const inputAmount_StartBytesIndex = 4;
+    const inputAmount_BytesLength = 32;
+    const inputAmount_StartBytesStringIndex =
+      2 + inputAmount_StartBytesIndex * 2;
+    const inputAmount_EndBytesStringIndex =
+      inputAmount_StartBytesStringIndex + inputAmount_BytesLength * 2;
+    const currentInputAmount = `0x${encodedFunctionData.slice(
+      inputAmount_StartBytesStringIndex,
+      inputAmount_EndBytesStringIndex
+    )}`;
+    const currentInputAmountBigNumber =
+      ethers.BigNumber.from(currentInputAmount);
+
+    // current output amount
+    const outputAmount_StartBytesIndex = 484;
+    const outputAmount_BytesLength = 32;
+    const outputAmount_StartBytesStringIndex =
+      2 + outputAmount_StartBytesIndex * 2;
+    const outputAmount_EndBytesStringIndex =
+      outputAmount_StartBytesStringIndex + outputAmount_BytesLength * 2;
+    const currentOutputAmount = `0x${encodedFunctionData.slice(
+      outputAmount_StartBytesStringIndex,
+      outputAmount_EndBytesStringIndex
+    )}`;
+    const currentOutputAmountBigNumber =
+      ethers.BigNumber.from(currentOutputAmount);
+
+    console.log('', {
+      currentInputAmountBigNumber: currentInputAmountBigNumber.toString(),
+      currentOutputAmountBigNumber: currentOutputAmountBigNumber.toString(),
+    });
+  }
+
   const socketGatewayContract = WeirollContract.createContract(
     new ethers.Contract(txData.result.txTarget, socketGatewayAbi),
     CommandFlags.CALL

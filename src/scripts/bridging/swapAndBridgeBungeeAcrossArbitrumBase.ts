@@ -100,10 +100,10 @@ export async function run() {
   // Sign and encode the transaction
   const { preAuthenticatedTx: authenticatedBridgeTx, gasLimit } =
     await createCowShedTx({
-    tx: bridgeWithBungeeTx,
-    chainId: sourceChain,
-    wallet,
-  });
+      tx: bridgeWithBungeeTx,
+      chainId: sourceChain,
+      wallet,
+    });
 
   // Define trade parameters. Sell sell token for intermediary token, to be received by cow-shed
   const parameters: TradeParameters = {
@@ -148,6 +148,11 @@ export async function run() {
 
   const minIntermediateTokenAmount =
     quoteResults.amountsAndCosts.afterSlippage.buyAmount;
+
+  const firstQuote = intermediateTokenAmount.toString();
+  const secondQuote = minIntermediateTokenAmount.toString();
+  console.log('', { firstQuote, secondQuote });
+
   const minIntermediateTokenAmountFormatted = ethers.utils.formatUnits(
     minIntermediateTokenAmount,
     intermediateTokenDecimals
