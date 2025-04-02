@@ -224,7 +224,7 @@ export const verifyBungeeTxData = async (
 
   // should not revert
   try {
-    await socketVerifier.validateRotueId(txData, routeId);
+    await socketVerifier.callStatic.validateRotueId(txData, routeId);
   } catch (error) {
     console.error('🔴 Error validating routeId:', error);
     throw error;
@@ -237,7 +237,7 @@ export const verifyBungeeTxData = async (
 
   // should not revert
   try {
-    await socketVerifier.validateSocketRequest(
+    await socketVerifier.callStatic.validateSocketRequest(
       txData,
       expectedUserRequestValidation
     );
