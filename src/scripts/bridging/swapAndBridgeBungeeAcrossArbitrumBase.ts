@@ -77,6 +77,7 @@ export async function run() {
   });
   const intermediateTokenAmount =
     quote.quoteResults.amountsAndCosts.afterSlippage.buyAmount;
+  console.log('intermediateTokenAmount', intermediateTokenAmount.toString());
 
   // console.log('quote', JSON.stringify(quote, jsonReplacer, 2));
 

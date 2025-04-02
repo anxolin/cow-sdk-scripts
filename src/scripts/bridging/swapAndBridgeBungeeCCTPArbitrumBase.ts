@@ -165,6 +165,11 @@ export async function run() {
 
   const minIntermediateTokenAmount =
     quoteResults.amountsAndCosts.afterSlippage.buyAmount;
+
+  const firstQuote = intermediateTokenAmount.toString();
+  const secondQuote = minIntermediateTokenAmount.toString();
+  console.log('', { firstQuote, secondQuote });
+
   const minIntermediateTokenAmountFormatted = ethers.utils.formatUnits(
     minIntermediateTokenAmount,
     intermediateTokenDecimals

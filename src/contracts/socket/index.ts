@@ -9,8 +9,11 @@ import { getWallet } from '../../utils';
 import { getCowShedAccount } from '../cowShed';
 import { getErc20Contract } from '../erc20';
 import { CommandFlags, getWeirollTx } from '../weiroll';
-import { bytesLibAbi, socketGatewayAbi, SocketRequest } from './types';
+import { bungeeCowswapLibAbi, socketGatewayAbi, SocketRequest } from './types';
 import {
+  BungeeCowswapLibAddresses,
+  BungeeTxDataIndices,
+  decodeAmountsBungeeTxData,
   decodeBungeeTxData,
   getBungeeQuote,
   getBungeeRouteTransactionData,
@@ -154,54 +157,58 @@ export async function bridgeWithBungee(
     planner.add(approvalTokenContract.approve(allowanceTarget, allowanceToSet));
   }
 
-  const bytesLibContractAddress = '0x8f6BA63528De7266d8cDfDdec7ACFA8446c62aB4';
-  const bytesLibContract = WeirollContract.createContract(
-    new ethers.Contract(bytesLibContractAddress, bytesLibAbi),
+  const BungeeCowswapLibContractAddress =
+    BungeeCowswapLibAddresses[sourceChain];
+  if (!BungeeCowswapLibContractAddress) {
+    throw new Error('BungeeCowswapLib contract not found');
+  }
+  const BungeeCowswapLibContract = WeirollContract.createContract(
+    new ethers.Contract(BungeeCowswapLibContractAddress, bungeeCowswapLibAbi),
     CommandFlags.CALL
   );
-  const encodedFunctionDataWithNewAmount = planner.add(
-    bytesLibContract.replaceBytes(
+
+  // weiroll: replace input amount with new input amount
+  const encodedFunctionDataWithNewInputAmount = planner.add(
+    BungeeCowswapLibContract.replaceBytes(
       encodedFunctionData,
-      4, // first 4 bytes are the function selector
-      32, // first 32 bytes of the params are the amount
+      BungeeTxDataIndices[useBridge].inputAmountBytes_startIndex,
+      BungeeTxDataIndices[useBridge].inputAmountBytes_length,
       sourceAmountIncludingSurplusBytes
     )
   );
+  let finalEncodedFunctionData = encodedFunctionDataWithNewInputAmount;
 
   // if bridge is across, update the output amount based on pctDiff of the new balance
   if (useBridge === 'across') {
-    // current input amount
-    const inputAmount_StartBytesIndex = 4;
-    const inputAmount_BytesLength = 32;
-    const inputAmount_StartBytesStringIndex =
-      2 + inputAmount_StartBytesIndex * 2;
-    const inputAmount_EndBytesStringIndex =
-      inputAmount_StartBytesStringIndex + inputAmount_BytesLength * 2;
-    const currentInputAmount = `0x${encodedFunctionData.slice(
-      inputAmount_StartBytesStringIndex,
-      inputAmount_EndBytesStringIndex
-    )}`;
-    const currentInputAmountBigNumber =
-      ethers.BigNumber.from(currentInputAmount);
-
-    // current output amount
-    const outputAmount_StartBytesIndex = 484;
-    const outputAmount_BytesLength = 32;
-    const outputAmount_StartBytesStringIndex =
-      2 + outputAmount_StartBytesIndex * 2;
-    const outputAmount_EndBytesStringIndex =
-      outputAmount_StartBytesStringIndex + outputAmount_BytesLength * 2;
-    const currentOutputAmount = `0x${encodedFunctionData.slice(
-      outputAmount_StartBytesStringIndex,
-      outputAmount_EndBytesStringIndex
-    )}`;
-    const currentOutputAmountBigNumber =
-      ethers.BigNumber.from(currentOutputAmount);
-
-    console.log('', {
-      currentInputAmountBigNumber: currentInputAmountBigNumber.toString(),
-      currentOutputAmountBigNumber: currentOutputAmountBigNumber.toString(),
+    // decode current input & output amounts
+    const { inputAmountBigNumber, outputAmountBigNumber } =
+      decodeAmountsBungeeTxData(encodedFunctionData, useBridge);
+    console.log('🔗 Socket input & output amounts:', {
+      inputAmountBigNumber: inputAmountBigNumber.toString(),
+      outputAmountBigNumber: outputAmountBigNumber.toString(),
     });
+
+    // new input amount
+    const newInputAmount = sourceAmountIncludingSurplusBytes;
+
+    // weiroll: increase output amount by pctDiff
+    const newOutputAmount = planner.add(
+      BungeeCowswapLibContract.addPctDiff(
+        inputAmountBigNumber, // base
+        newInputAmount, // compare
+        outputAmountBigNumber // target
+      ).rawValue()
+    );
+    // weiroll: replace output amount bytes with newOutputAmount
+    const encodedFunctionDataWithNewInputAndOutputAmount = planner.add(
+      BungeeCowswapLibContract.replaceBytes(
+        finalEncodedFunctionData,
+        BungeeTxDataIndices[useBridge].outputAmountBytes_startIndex!,
+        BungeeTxDataIndices[useBridge].outputAmountBytes_length!,
+        newOutputAmount
+      )
+    );
+    finalEncodedFunctionData = encodedFunctionDataWithNewInputAndOutputAmount;
   }
 
   const socketGatewayContract = WeirollContract.createContract(
@@ -210,10 +217,7 @@ export async function bridgeWithBungee(
   );
   // Call executeRoute on SocketGateway
   planner.add(
-    socketGatewayContract.executeRoute(
-      routeId,
-      encodedFunctionDataWithNewAmount
-    )
+    socketGatewayContract.executeRoute(routeId, finalEncodedFunctionData)
   );
 
   // Return the transaction

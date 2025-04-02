@@ -48,6 +48,52 @@ export const socketGatewayMapping: Record<
   [SupportedChainId.SEPOLIA]: undefined,
 };
 
+// TODO: deploy BungeeCowswapLib contracts for all chains
+export const BungeeCowswapLibAddresses: Record<
+  SupportedChainId,
+  string | undefined
+> = {
+  [SupportedChainId.MAINNET]: undefined,
+  [SupportedChainId.GNOSIS_CHAIN]: undefined,
+  [SupportedChainId.ARBITRUM_ONE]: '0xAeE8bC0284d795D7662608dD765C8b5F1C6250CD',
+  [SupportedChainId.BASE]: undefined,
+  [SupportedChainId.SEPOLIA]: undefined,
+};
+
+export const BungeeTxDataIndices: Record<
+  'across' | 'cctp',
+  {
+    // input amount
+    inputAmountBytes_startIndex: number;
+    inputAmountBytes_length: number;
+    inputAmountBytesString_startIndex: number;
+    inputAmountBytesString_length: number;
+    // output amount
+    outputAmountBytes_startIndex?: number;
+    outputAmountBytes_length?: number;
+    outputAmountBytesString_startIndex?: number;
+    outputAmountBytesString_length?: number;
+  }
+> = {
+  across: {
+    inputAmountBytes_startIndex: 4, // first 4 bytes are the function selector
+    inputAmountBytes_length: 32, // first 32 bytes of the params are the amount
+    inputAmountBytesString_startIndex: 2 + 4 * 2, // first two characters are 0x and 4 bytes = 8 chars for the amount
+    inputAmountBytesString_length: 32 * 2, // 32 bytes = 64 chars for the amount
+    // output amount
+    outputAmountBytes_startIndex: 484, // outputAmount is part of the AcrossBridgeData struct in SocketGateway AcrossV3 impl
+    outputAmountBytes_length: 32, // 32 bytes of amount
+    outputAmountBytesString_startIndex: 2 + 484 * 2, // first two characters are 0x and 484 bytes = 968 chars for the amount
+    outputAmountBytesString_length: 32 * 2, // 32 bytes = 64 chars for the amount
+  },
+  cctp: {
+    inputAmountBytes_startIndex: 4, // first 4 bytes are the function selector
+    inputAmountBytes_length: 32, // first 32 bytes of the params are the amount
+    inputAmountBytesString_startIndex: 2 + 4 * 2, // first two characters are 0x and 4 bytes = 8 chars for the amount
+    inputAmountBytesString_length: 32 * 2, // 32 bytes = 64 chars for the amount
+  },
+};
+
 /**
  * Makes a GET request to Bungee APIs for quote
  * https://docs.bungee.exchange/bungee-manual/socket-api-reference/quote-controller-get-quote/
@@ -132,6 +178,30 @@ export const decodeBungeeTxData = (txData: string) => {
   // rest is the encoded function data
   const encodedFunctionData = `0x${txDataWithout0x.slice(8)}`;
   return { routeId, encodedFunctionData };
+};
+
+export const decodeAmountsBungeeTxData = (
+  txData: string,
+  bridge: 'across' | 'cctp'
+) => {
+  const inputAmountBytes = `0x${txData.slice(
+    BungeeTxDataIndices[bridge].inputAmountBytesString_startIndex,
+    BungeeTxDataIndices[bridge].inputAmountBytesString_startIndex +
+      BungeeTxDataIndices[bridge].inputAmountBytesString_length
+  )}`;
+  const inputAmountBigNumber = ethers.BigNumber.from(inputAmountBytes);
+  const outputAmountBytes = `0x${txData.slice(
+    BungeeTxDataIndices[bridge].outputAmountBytesString_startIndex,
+    BungeeTxDataIndices[bridge].outputAmountBytesString_startIndex! +
+      BungeeTxDataIndices[bridge].outputAmountBytesString_length!
+  )}`;
+  const outputAmountBigNumber = ethers.BigNumber.from(outputAmountBytes);
+  return {
+    inputAmountBytes,
+    inputAmountBigNumber,
+    outputAmountBytes,
+    outputAmountBigNumber,
+  };
 };
 
 export const verifyBungeeTxData = async (

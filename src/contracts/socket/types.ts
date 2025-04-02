@@ -209,7 +209,41 @@ export type BungeeBuildTxResponse = {
   statusCode: number;
 };
 
-export const bytesLibAbi = [
+export const bungeeCowswapLibAbi = [
+  {
+    inputs: [],
+    name: 'InvalidInput',
+    type: 'error',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: '_base',
+        type: 'uint256',
+      },
+      {
+        internalType: 'bytes',
+        name: '_compare',
+        type: 'bytes',
+      },
+      {
+        internalType: 'uint256',
+        name: '_target',
+        type: 'uint256',
+      },
+    ],
+    name: 'addPctDiff',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'pure',
+    type: 'function',
+  },
   {
     inputs: [
       {
