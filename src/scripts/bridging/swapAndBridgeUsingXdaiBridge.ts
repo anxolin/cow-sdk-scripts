@@ -7,7 +7,6 @@ import {
   OrderKind,
   TradeParameters,
   TradingSdk,
-  CowShedHooks,
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
 
@@ -49,7 +48,7 @@ export async function run() {
     preAuthenticatedTx: authenticatedBridgeTx,
     gasLimit,
   } = await createCowShedTx({
-    tx: bridgeWithXdaiBridgeTx,
+    call: bridgeWithXdaiBridgeTx,
     chainId,
     wallet,
   });
