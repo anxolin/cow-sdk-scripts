@@ -10,7 +10,7 @@ import {
 import { ethers } from 'ethers';
 
 import { MetadataApi } from '@cowprotocol/app-data';
-import { createCowShedTx, getCowShedHooks } from '../../contracts/cowShed';
+import { createCowShedTx, getCowShedAccount } from '../../contracts/cowShed';
 import { confirm, getWallet, jsonReplacer } from '../../utils';
 
 import { getErc20Contract } from '../../contracts/erc20';
@@ -45,7 +45,7 @@ export async function run() {
   const wallet = await getWallet(sourceChain);
   const walletAddress = await wallet.getAddress();
   console.log('🔑 Wallet address:', walletAddress);
-  
+
   const sellToken = arbitrum.USDT_ADDRESS;
   const sellTokenDecimals = await getErc20Contract(
     sellToken,
@@ -80,8 +80,7 @@ export async function run() {
   const intermediateTokenSymbol = await intermediateTokenContract.symbol();
 
   // Estimate how many intermediate tokens we can bridge
-  const cowShedHooks = getCowShedHooks(sourceChain);
-  const cowShedAccount = cowShedHooks.proxyOf(wallet.address);
+  const cowShedAccount = getCowShedAccount(sourceChain, wallet.address);
   let quote = await sdk.getQuote({
     kind: OrderKind.SELL,
     amount: sellAmount,
@@ -117,10 +116,10 @@ export async function run() {
   // Sign and encode the transaction
   const { preAuthenticatedTx: authenticatedBridgeTx, gasLimit } =
     await createCowShedTx({
-    tx: bridgeWithBungeeTx,
-    chainId: sourceChain,
-    wallet,
-  });
+      call: bridgeWithBungeeTx,
+      chainId: sourceChain,
+      wallet,
+    });
 
   // Define trade parameters. Sell sell token for intermediary token, to be received by cow-shed
   const parameters: TradeParameters = {
@@ -141,7 +140,7 @@ export async function run() {
       hooks: {
         post: [
           {
-            callData: authenticatedBridgeTx.callData,
+            callData: authenticatedBridgeTx.data,
             gasLimit: gasLimit.toString(),
             target: authenticatedBridgeTx.to,
             dappId: 'bridge-socket',
@@ -228,6 +227,11 @@ export async function run() {
   // Print the order creation
   console.log(
     `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`
+  );
+
+  // Print socketscan link
+  console.log(
+    `🔍 After filled on CoWSwap, you can watch bridge status on Socketscan using the order id: https://www.socketscan.io/tx/${orderId}`
   );
 
   console.log(`🎉 The USDC is now waiting for you in Base`);

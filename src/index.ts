@@ -78,8 +78,8 @@ const JOBS: (() => Promise<unknown>)[] = [
   // getTradingQuote,
 
   // swapAndBridgeBungeeCCTPArbitrumBase,
-  // swapAndBridgeBungeeAcrossArbitrumBase,
-  getBungeeBridgeStatus,
+  swapAndBridgeBungeeAcrossArbitrumBase,
+  // getBungeeBridgeStatus,
 ];
 
 async function main() {

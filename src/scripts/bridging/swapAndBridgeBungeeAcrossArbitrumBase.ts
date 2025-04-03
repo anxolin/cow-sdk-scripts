@@ -10,7 +10,7 @@ import {
 import { ethers } from 'ethers';
 
 import { MetadataApi } from '@cowprotocol/app-data';
-import { createCowShedTx, getCowShedHooks } from '../../contracts/cowShed';
+import { createCowShedTx, getCowShedAccount } from '../../contracts/cowShed';
 import { confirm, getWallet, jsonReplacer } from '../../utils';
 
 import { getErc20Contract } from '../../contracts/erc20';
@@ -63,8 +63,7 @@ export async function run() {
   const intermediateTokenSymbol = await intermediateTokenContract.symbol();
 
   // Estimate how many intermediate tokens we can bridge
-  const cowShedHooks = getCowShedHooks(sourceChain);
-  const cowShedAccount = cowShedHooks.proxyOf(wallet.address);
+  const cowShedAccount = getCowShedAccount(sourceChain, wallet.address);
   let quote = await sdk.getQuote({
     kind: OrderKind.SELL,
     amount: sellAmount,
@@ -101,7 +100,7 @@ export async function run() {
   // Sign and encode the transaction
   const { preAuthenticatedTx: authenticatedBridgeTx, gasLimit } =
     await createCowShedTx({
-      tx: bridgeWithBungeeTx,
+      call: bridgeWithBungeeTx,
       chainId: sourceChain,
       wallet,
     });
@@ -125,7 +124,7 @@ export async function run() {
       hooks: {
         post: [
           {
-            callData: authenticatedBridgeTx.callData,
+            callData: authenticatedBridgeTx.data,
             gasLimit: gasLimit.toString(),
             target: authenticatedBridgeTx.to,
             dappId: 'bridge-socket',
