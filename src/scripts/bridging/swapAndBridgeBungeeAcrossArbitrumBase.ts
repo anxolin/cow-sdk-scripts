@@ -29,7 +29,7 @@ export async function run() {
   const walletAddress = await wallet.getAddress();
   console.log('🔑 Wallet address:', walletAddress);
 
-  const sellToken = arbitrum.USDT_ADDRESS;
+  const sellToken = arbitrum.USDCe_ADDRESS;
   const sellTokenDecimals = await getErc20Contract(
     sellToken,
     wallet
