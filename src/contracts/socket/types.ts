@@ -247,6 +247,35 @@ export const bungeeCowswapLibAbi = [
   {
     inputs: [
       {
+        internalType: 'uint256',
+        name: '_base',
+        type: 'uint256',
+      },
+      {
+        internalType: 'bytes',
+        name: '_compare',
+        type: 'bytes',
+      },
+      {
+        internalType: 'uint256',
+        name: '_target',
+        type: 'uint256',
+      },
+    ],
+    name: 'applyPctDiff',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+    ],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
         internalType: 'bytes',
         name: '_original',
         type: 'bytes',
@@ -273,6 +302,35 @@ export const bungeeCowswapLibAbi = [
         internalType: 'bytes',
         name: '',
         type: 'bytes',
+      },
+    ],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: '_base',
+        type: 'uint256',
+      },
+      {
+        internalType: 'bytes',
+        name: '_compare',
+        type: 'bytes',
+      },
+      {
+        internalType: 'uint256',
+        name: '_target',
+        type: 'uint256',
+      },
+    ],
+    name: 'subPctDiff',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
       },
     ],
     stateMutability: 'pure',

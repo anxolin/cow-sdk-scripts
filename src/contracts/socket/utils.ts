@@ -55,7 +55,7 @@ export const BungeeCowswapLibAddresses: Record<
 > = {
   [SupportedChainId.MAINNET]: undefined,
   [SupportedChainId.GNOSIS_CHAIN]: undefined,
-  [SupportedChainId.ARBITRUM_ONE]: '0xAeE8bC0284d795D7662608dD765C8b5F1C6250CD',
+  [SupportedChainId.ARBITRUM_ONE]: '0x73eb30778f7e3958bfd974d10c0be559c2c65e22',
   [SupportedChainId.BASE]: undefined,
   [SupportedChainId.SEPOLIA]: undefined,
 };

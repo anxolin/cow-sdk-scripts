@@ -201,7 +201,7 @@ export async function bridgeWithBungee(
 
       // weiroll: increase output amount by pctDiff
       const newOutputAmount = planner.add(
-        BungeeCowswapLibContract.addPctDiff(
+        BungeeCowswapLibContract.applyPctDiff(
           inputAmountBigNumber, // base
           newInputAmount, // compare
           outputAmountBigNumber // target
