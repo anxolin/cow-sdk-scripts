@@ -214,5 +214,10 @@ export async function run() {
     `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`
   );
 
+  // Print socketscan link
+  console.log(
+    `🔍 After filled on CoWSwap, you can watch bridge status on Socketscan using the order id: https://www.socketscan.io/tx/${orderId}`
+  );
+
   console.log(`🎉 The USDC is now waiting for you in Base`);
 }
