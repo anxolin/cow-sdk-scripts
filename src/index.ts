@@ -32,6 +32,7 @@ import { run as getOrderbookQuote } from "./orderbook/getQuote";
 import { run as getOrderbookQuoteWithAppData } from "./orderbook/getQuoteWithAppData";
 import { run as getTradingQuote } from "./scripts/trading/getQuote";
 import { run as getAcrossBridgingId } from "./scripts/bridging/getAcrossBridgingId";
+import { run as getEthFlowId } from "./scripts/ethflow/getEthFlowId";
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
@@ -75,7 +76,8 @@ const JOBS: (() => Promise<unknown>)[] = [
   // getOrderbookQuoteWithAppData,
   // getTradingQuote,
 
-  getAcrossBridgingId,
+  // getAcrossBridgingId,
+  getEthFlowId,
 ];
 
 async function main() {
