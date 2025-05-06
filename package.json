@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@cowprotocol/cow-sdk": "6.0.0-RC.19",
+    "@cowprotocol/app-data": "3.0.0-rc.0",
+    "@cowprotocol/contracts": "^1.7.0",
     "axios": "^1.7.9",
     "dotenv": "^16.4.5",
     "ethers": "^5.7.2",

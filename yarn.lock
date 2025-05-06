@@ -26,6 +26,17 @@
   resolved "https://registry.npmjs.org/@babel/helper-validator-identifier/-/helper-validator-identifier-7.25.9.tgz"
   integrity sha512-Ed61U6XJc3CVRfkERJWDz4dJwKe7iLmmJsbOGu9wSloNSFttHV0I8g6UAgb7qnK5ly5bGLPd4oXZlxCdANBOWQ==
 
+"@cowprotocol/app-data@3.0.0-rc.0":
+  version "3.0.0-rc.0"
+  resolved "https://registry.yarnpkg.com/@cowprotocol/app-data/-/app-data-3.0.0-rc.0.tgz#d171c275c480e9bed397b447e606360863842a4d"
+  integrity sha512-YvMiqHkIS2ylQezFK48OE6Id0BuvGL1fh7AtuAzZK7EAHl/5UpM3sKb6ZCymd/45BpRF5GXBujmZt09ijM9Wfg==
+  dependencies:
+    ajv "^8.11.0"
+    cross-fetch "^3.1.5"
+    ipfs-only-hash "^4.0.0"
+    json-stringify-deterministic "^1.0.8"
+    multiformats "^9.6.4"
+
 "@cowprotocol/app-data@^2.4.0":
   version "2.5.1"
   resolved "https://registry.npmjs.org/@cowprotocol/app-data/-/app-data-2.5.1.tgz"
@@ -37,7 +48,7 @@
     json-stringify-deterministic "^1.0.8"
     multiformats "^9.6.4"
 
-"@cowprotocol/contracts@^1.6.0":
+"@cowprotocol/contracts@^1.6.0", "@cowprotocol/contracts@^1.7.0":
   version "1.7.0"
   resolved "https://registry.npmjs.org/@cowprotocol/contracts/-/contracts-1.7.0.tgz"
   integrity sha512-tog/0igLaWZv6kK30+aFJ267+yNyMINx6qDHaJQFKZs051XUXnzNFlZgCEfICwDz/821XYjZxOnNbe449tgD5w==
