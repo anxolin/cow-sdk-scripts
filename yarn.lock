@@ -26,10 +26,10 @@
   resolved "https://registry.npmjs.org/@babel/helper-validator-identifier/-/helper-validator-identifier-7.25.9.tgz"
   integrity sha512-Ed61U6XJc3CVRfkERJWDz4dJwKe7iLmmJsbOGu9wSloNSFttHV0I8g6UAgb7qnK5ly5bGLPd4oXZlxCdANBOWQ==
 
-"@cowprotocol/app-data@3.0.0-rc.0":
-  version "3.0.0-rc.0"
-  resolved "https://registry.yarnpkg.com/@cowprotocol/app-data/-/app-data-3.0.0-rc.0.tgz#d171c275c480e9bed397b447e606360863842a4d"
-  integrity sha512-YvMiqHkIS2ylQezFK48OE6Id0BuvGL1fh7AtuAzZK7EAHl/5UpM3sKb6ZCymd/45BpRF5GXBujmZt09ijM9Wfg==
+"@cowprotocol/app-data@3.0.0-rc.1":
+  version "3.0.0-rc.1"
+  resolved "https://registry.yarnpkg.com/@cowprotocol/app-data/-/app-data-3.0.0-rc.1.tgz#2fcd06fa06399138efaefdd1b0ff5af4f7981915"
+  integrity sha512-o5JFX/WEyNzHMxoOdEy5vGrmkFX3HYS6RTOsa+LP65ybz+JfdLG48rhOPxKmGuqun1IY7tW2oSEbm8C5beon3w==
   dependencies:
     ajv "^8.11.0"
     cross-fetch "^3.1.5"
