@@ -39,7 +39,7 @@ dotenv.config();
 // Just to dev things easily using watch-mode  :)
 const JOBS: (() => Promise<unknown>)[] = [
   // approveTokenSepolia, // Required to approve the token before trading
-  // getQuoteAndPostOrder, // Simplest way to integrate!
+  getQuoteAndPostOrder, // Simplest way to integrate!
   //
   // swapWithPk,
   // swapSell,
@@ -79,7 +79,7 @@ const JOBS: (() => Promise<unknown>)[] = [
 
   // getAcrossBridgingId,
   // getEthFlowId,
-  minimalAppData,
+  // minimalAppData,
 ];
 
 async function main() {

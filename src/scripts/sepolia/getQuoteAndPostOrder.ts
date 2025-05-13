@@ -25,7 +25,7 @@ export async function run() {
   console.log("Get quote for selling 0.1 WETH for WETH");
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
-    amount: ethers.utils.parseUnits("0.1", 18).toString(), // 0.1 WETH
+    amount: ethers.utils.parseUnits("0.01", 18).toString(), // 0.1 WETH
     sellToken: WETH_ADDRESS,
     sellTokenDecimals: 18,
     buyToken: COW_ADDRESS, // For COW
@@ -50,7 +50,7 @@ export async function run() {
     `You will get at least ${buyAmount} COW. ok?`
   );
   if (confirmed) {
-    const orderId = await postSwapOrderFromQuote();
+    const { orderId } = await postSwapOrderFromQuote();
 
     console.log(
       `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`

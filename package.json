@@ -1,5 +1,5 @@
 {
-  "name": "swap-n-bridge",
+  "name": "cow-sdk-scripts",
   "version": "1.0.0",
   "main": "dist/index.js",
   "license": "MIT",
@@ -17,7 +17,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@cowprotocol/cow-sdk": "6.0.0-RC.19",
+    "@cowprotocol/cow-sdk": "6.0.0-RC.37",
     "@cowprotocol/app-data": "3.0.0-rc.1",
     "@cowprotocol/contracts": "^1.7.0",
     "axios": "^1.7.9",

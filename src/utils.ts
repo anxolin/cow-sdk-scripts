@@ -78,6 +78,8 @@ export const jsonReplacer = (key: string, value: any) => {
 };
 
 export function printQuote(quoteResults: QuoteResults) {
+  console.log(`\n📉 Suggested slippage: ${quoteResults.suggestedSlippageBps}`);
+
   console.log(
     "\n🤝 Quote: ",
     JSON.stringify(quoteResults.quoteResponse, jsonReplacer, 2)

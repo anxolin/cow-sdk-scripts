@@ -1,4 +1,4 @@
-export const APP_CODE = "swap-n-bridge";
+export const APP_CODE = "cow-sdk-scripts";
 export const NATIVE_CURRENCY_ADDRESS =
   "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
