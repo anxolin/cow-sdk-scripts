@@ -17,7 +17,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@cowprotocol/cow-sdk": "6.0.0-RC.37",
+    "@cowprotocol/cow-sdk": "6.0.0-RC.42",
     "@cowprotocol/app-data": "3.0.0-rc.1",
     "@cowprotocol/contracts": "^1.7.0",
     "axios": "^1.7.9",

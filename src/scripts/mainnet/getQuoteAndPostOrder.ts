@@ -1,5 +1,5 @@
-import { sepolia, APP_CODE } from "../../const";
-const { WETH_ADDRESS, COW_ADDRESS } = sepolia;
+import { sepolia, APP_CODE, mainnet } from "../../const";
+const { USDC_ADDRESS, COW_ADDRESS } = mainnet;
 import {
   SupportedChainId,
   OrderKind,
@@ -12,24 +12,26 @@ import { confirm, getWallet, jsonReplacer, printQuote } from "../../utils";
 const PARTNER_FEE_ADDRESS = "0x79063d9173C09887d536924E2F6eADbaBAc099f5";
 
 export async function run() {
-  const wallet = await getWallet(SupportedChainId.SEPOLIA);
+  const wallet = await getWallet(SupportedChainId.MAINNET);
 
   // Initialize the SDK with the wallet
   const sdk = new TradingSdk({
-    chainId: SupportedChainId.SEPOLIA,
+    chainId: SupportedChainId.MAINNET,
     signer: wallet, // Use a signer
     appCode: APP_CODE,
   });
 
+  const sellTokenDecimals = 6;
+  const buyTokenDecimals = 18;
+
   // Define trade parameters
-  console.log("Get quote for selling 0.1 WETH for WETH");
   const parameters: TradeParameters = {
     kind: OrderKind.SELL, // Sell
-    amount: ethers.utils.parseUnits("0.0001", 18).toString(), // 0.1 WETH
-    sellToken: WETH_ADDRESS,
-    sellTokenDecimals: 18,
+    amount: ethers.utils.parseUnits("30", sellTokenDecimals).toString(), // 0.1 WETH
+    sellToken: USDC_ADDRESS,
+    sellTokenDecimals: sellTokenDecimals,
     buyToken: COW_ADDRESS, // For COW
-    buyTokenDecimals: 18,
+    buyTokenDecimals: buyTokenDecimals,
 
     // Optionally add a partner fee and a recipient
     partnerFee: {
@@ -55,7 +57,7 @@ export async function run() {
     const { orderId } = await postSwapOrderFromQuote();
 
     console.log(
-      `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+      `Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`
     );
   }
 }

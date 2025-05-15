@@ -22,6 +22,7 @@ import { run as swapAndBridgeUsingXdaiBridge } from "./scripts/bridging/swapAndB
 import { run as swapSellWithSlippageTolerance } from "./scripts/sepolia/swapSellWithSlippageTolerance";
 
 import { run as approveTokenMainnet } from "./scripts/mainnet/approveTokenMainnet";
+import { run as getQuoteAndPostOrderMainnet } from "./scripts/mainnet/getQuoteAndPostOrder";
 import { run as approveTokenGnosis } from "./scripts/gnosis/approveTokenGnosis";
 import { run as swapAndBridgeSwapsIo } from "./scripts/bridging/swapAndBridgeSwapsIO";
 import { run as approveTokenArbitrum } from "./scripts/arbitrum/approveTokenArbitrum";
@@ -34,12 +35,13 @@ import { run as getTradingQuote } from "./scripts/trading/getQuote";
 import { run as getAcrossBridgingId } from "./scripts/bridging/getAcrossBridgingId";
 import { run as getEthFlowId } from "./scripts/ethflow/getEthFlowId";
 import { run as minimalAppData } from "./scripts/app-data/minimalAppData";
+
 dotenv.config();
 
 // Just to dev things easily using watch-mode  :)
 const JOBS: (() => Promise<unknown>)[] = [
   // approveTokenSepolia, // Required to approve the token before trading
-  getQuoteAndPostOrder, // Simplest way to integrate!
+  // getQuoteAndPostOrder, // Simplest way to integrate!
   //
   // swapWithPk,
   // swapSell,
@@ -62,6 +64,7 @@ const JOBS: (() => Promise<unknown>)[] = [
   // nativeSell, // FIXME: Throws error creating the eth flow order. Doesn't recognize 'gas' property - I believe expects 'gasLimit')
   //
   // approveTokenMainnet,
+  getQuoteAndPostOrderMainnet,
   // swapAndBridgeUsingOmnibridge,
   // swapAndBridgeUsingXdaiBridge,
   //
