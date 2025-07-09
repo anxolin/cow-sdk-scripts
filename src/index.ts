@@ -35,6 +35,7 @@ import { run as getTradingQuote } from "./scripts/trading/getQuote";
 import { run as getAcrossBridgingId } from "./scripts/bridging/getAcrossBridgingId";
 import { run as getEthFlowId } from "./scripts/ethflow/getEthFlowId";
 import { run as minimalAppData } from "./scripts/app-data/minimalAppData";
+import { run as collateralSwapAave } from "./scripts/flash-loans/collateralSwapAave";
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ dotenv.config();
 const JOBS: (() => Promise<unknown>)[] = [
   // approveTokenSepolia, // Required to approve the token before trading
   // getQuoteAndPostOrder, // Simplest way to integrate!
+  // getQuoteAndPostOrderNative,
   //
   // swapWithPk,
   // swapSell,
@@ -64,7 +66,7 @@ const JOBS: (() => Promise<unknown>)[] = [
   // nativeSell, // FIXME: Throws error creating the eth flow order. Doesn't recognize 'gas' property - I believe expects 'gasLimit')
   //
   // approveTokenMainnet,
-  getQuoteAndPostOrderMainnet,
+  // getQuoteAndPostOrderMainnet,
   // swapAndBridgeUsingOmnibridge,
   // swapAndBridgeUsingXdaiBridge,
   //
@@ -83,6 +85,7 @@ const JOBS: (() => Promise<unknown>)[] = [
   // getAcrossBridgingId,
   // getEthFlowId,
   // minimalAppData,
+  collateralSwapAave,
 ];
 
 async function main() {

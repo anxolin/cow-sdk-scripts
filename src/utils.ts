@@ -125,3 +125,29 @@ export function getExplorerUrl(chainId: SupportedChainId, txHash: string) {
 
   throw new Error(`Unsupported Explorer for chainId ${chainId}`);
 }
+
+export function predictDeterministicAddress(params: {
+  implementation: string;
+  salt: string;
+  factoryAddress: string;
+}): string {
+  const { implementation, salt, factoryAddress } = params;
+  // EIP-1167 minimal proxy creation code
+  const creationCode =
+    "0x3d602d80600a3d3981f3363d3d373d3d3d363d73" +
+    implementation.slice(2) +
+    "5af43d82803e903d91602b57fd5bf3";
+
+  // CREATE2 formula: keccak256(0xff ++ address ++ salt ++ keccak256(creationCode))
+  const initCodeHash = ethers.utils.keccak256(creationCode);
+
+  const packed = ethers.utils.solidityPack(
+    ["bytes1", "address", "bytes32", "bytes32"],
+    ["0xff", factoryAddress, salt, initCodeHash]
+  );
+
+  const hash = ethers.utils.keccak256(packed);
+
+  // Return last 20 bytes (40 characters) as address
+  return ethers.utils.getAddress("0x" + hash.slice(-40));
+}

@@ -122,7 +122,7 @@ export async function run() {
   }
 
   // Post the order
-  const orderId = await quote.postSwapOrderFromQuote();
+  const { orderId } = await quote.postSwapOrderFromQuote();
 
   // Print the order creation
   console.log(
