@@ -36,6 +36,9 @@ import { run as getAcrossBridgingId } from "./scripts/bridging/getAcrossBridging
 import { run as getEthFlowId } from "./scripts/ethflow/getEthFlowId";
 import { run as minimalAppData } from "./scripts/app-data/minimalAppData";
 import { run as collateralSwapAave } from "./scripts/flash-loans/collateralSwapAave";
+import { run as collateralSwapAavePoC } from "./scripts/flash-loans/collateralSwapAavePoC";
+import { run as repayDebtWithCollateralAavePoC } from "./scripts/flash-loans/repayDebtWithCollateralAavePoC";
+import { run as debtSwapAavePoC } from "./scripts/flash-loans/debtSwapAavePoC";
 
 dotenv.config();
 
@@ -85,7 +88,9 @@ const JOBS: (() => Promise<unknown>)[] = [
   // getAcrossBridgingId,
   // getEthFlowId,
   // minimalAppData,
-  collateralSwapAave,
+  // collateralSwapAavePoC,
+  //repayDebtWithCollateralAavePoC,
+  debtSwapAavePoC,
 ];
 
 async function main() {
