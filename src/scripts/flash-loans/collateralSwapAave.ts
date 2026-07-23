@@ -12,7 +12,7 @@ import {
 import { ethers } from "ethers";
 import { confirm, getWallet, printQuote } from "../../utils";
 import { getErc20Contract } from "../../contracts/erc20";
-import { latest } from "@cowprotocol/app-data";
+import { cowAppDataLatestScheme as latest } from "@cowprotocol/sdk-app-data";
 import { orderHelperFactoryAbi } from "./abi/OrderHelperFactoryAbi";
 import { orderHelperAbi } from "./abi/OrderHelperAbi";
 

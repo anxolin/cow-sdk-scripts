@@ -6,7 +6,7 @@ import {
   TradeParameters,
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
-import { MetadataApi } from "@cowprotocol/app-data";
+import { MetadataApi } from "@cowprotocol/sdk-app-data";
 import { ethers } from "ethers";
 import { getWallet, jsonReplacer } from "../../utils";
 
@@ -22,7 +22,7 @@ import { getWallet, jsonReplacer } from "../../utils";
  *
  * What the SDK supports (verified 2026-07)
  * ----------------------------------------
- * `@cowprotocol/app-data` (3.0.0-rc.1, schema up to v1.3.0) exposes standard **CoW hooks**
+ * `@cowprotocol/sdk-app-data` (3.0.0-rc.1, schema up to v1.3.0) exposes standard **CoW hooks**
  * (`metadata.hooks.pre` / `.post`, each a `{ target, callData, gasLimit }`). Neither app-data nor
  * `@cowprotocol/cow-sdk` (checked 6.0.0-RC.42 and 9.2.2) exposes a "wrapper" / Atomic-Bundles field
  * or a `wrappedSettle` helper, so we cannot route an order through a settlement wrapper from here.
@@ -81,18 +81,22 @@ export async function run() {
   });
 
   // NOTE: `as any` bridges dual-package app-data type drift in this SDK RC (the standalone
-  // `@cowprotocol/app-data` schema vs the copy bundled inside `@cowprotocol/cow-sdk`). The
+  // `@cowprotocol/sdk-app-data` schema vs the copy bundled inside `@cowprotocol/cow-sdk`). The
   // runtime JSON is identical.
   // Inspect exactly what will be committed on-chain (hash) and served off-chain (full doc).
-  const { appDataContent, appDataHex } = await metadataApi.getAppDataInfo(appData as any);
+  const { appDataContent, appDataHex } = await metadataApi.getAppDataInfo(
+    appData as any,
+  );
   console.log("📦 appData doc:", JSON.stringify(appData, jsonReplacer, 2));
   console.log("🧾 appData content (served to solvers):", appDataContent);
   console.log("#️⃣  appData hash (committed in the order):", appDataHex);
 
   console.log(`\nPosting order on Gnosis (owner=${wallet.address})...`);
-  const orderId = await sdk.postSwapOrder(parameters, { appData: appData as any });
+  const orderId = await sdk.postSwapOrder(parameters, {
+    appData: appData as any,
+  });
 
   console.log(
-    `✅ Order created: https://explorer.cow.fi/gc/orders/${orderId}?tab=overview`
+    `✅ Order created: https://explorer.cow.fi/gc/orders/${orderId}?tab=overview`,
   );
 }

@@ -1,4 +1,4 @@
-import { MetadataApi, stringifyDeterministic } from "@cowprotocol/app-data";
+import { MetadataApi, stringifyDeterministic } from "@cowprotocol/sdk-app-data";
 
 export async function run() {
   const metadataApi = new MetadataApi();
@@ -11,14 +11,13 @@ export async function run() {
     },
   });
 
-  const { appDataContent, appDataHex, cid } = await metadataApi.getAppDataInfo(
-    appDataSchema
-  );
+  const { appDataContent, appDataHex, cid } =
+    await metadataApi.getAppDataInfo(appDataSchema);
 
   console.log("App-data content (full app-data string): ", appDataContent);
   console.log(
     "App-data hex (app-data hex part of the order struct): ",
-    appDataHex
+    appDataHex,
   );
   console.log("App-data cid (IPFS identifier): ", cid);
 }

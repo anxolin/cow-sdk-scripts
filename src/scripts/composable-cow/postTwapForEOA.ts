@@ -11,12 +11,12 @@ import { Twap } from "@cowprotocol/sdk-composable";
 import { setGlobalAdapter } from "@cowprotocol/sdk-common";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 
-import { MetadataApi } from "@cowprotocol/app-data";
+import { MetadataApi } from "@cowprotocol/sdk-app-data";
 import { ethers } from "ethers";
 import { confirm, debugStringify, getWallet, printQuote } from "../../utils";
 import { getErc20Contract } from "../../contracts/erc20";
 import { getCowShedSdk } from "./cowShed";
-// import { latest } from "@cowprotocol/app-data";
+// import { latest } from "@cowprotocol/sdk-app-data";
 
 const DEFAULT_GAS_LIMIT = 500_000n;
 
@@ -45,7 +45,10 @@ export async function run() {
 
   // v9 SDK uses a global provider adapter (read by the composable order types and
   // cow-shed via `getGlobalAdapter()`), so set it before using them.
-  const adapter = new EthersV5Adapter({ provider: wallet.provider, signer: wallet });
+  const adapter = new EthersV5Adapter({
+    provider: wallet.provider,
+    signer: wallet,
+  });
   setGlobalAdapter(adapter);
 
   // Initialize the SDK with the wallet

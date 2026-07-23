@@ -8,7 +8,7 @@ import {
   TradeParameters,
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
-import { MetadataApi } from "@cowprotocol/app-data";
+import { MetadataApi } from "@cowprotocol/sdk-app-data";
 
 const { GNO_ADDRESS } = gnosis;
 const { BTCB_ADDRESS } = bnbchain;
@@ -38,7 +38,7 @@ async function apiRequest(method: string, params: any, post: boolean = false) {
 }
 
 async function selectIntermediaryAddress(
-  quote: SwapsIoQuoteParams
+  quote: SwapsIoQuoteParams,
 ): Promise<Token> {
   const selectData = await apiRequest("select", quote);
   const decimals: Record<string, number> = {
@@ -142,15 +142,15 @@ export async function run() {
   console.log(
     `Estimated intermediary token received: ${ethers.utils.formatUnits(
       minBuyAmount,
-      intermediaryToken.decimals
-    )}`
+      intermediaryToken.decimals,
+    )}`,
   );
 
   // ----------------------------
   // STEP C: Get cross-chain quote for final token on destination chain
   // ----------------------------
   console.log(
-    "Fetching cross-chain quote on Swaps.io for final token on destination chain..."
+    "Fetching cross-chain quote on Swaps.io for final token on destination chain...",
   );
   const crossChainQuoteParams = {
     ...selectQuoteParams,
@@ -160,7 +160,7 @@ export async function run() {
   const crossChainQuote = await getCrossChainQuote(crossChainQuoteParams);
   const formattedFinalAmount = ethers.utils.formatUnits(
     crossChainQuote.data.order.toAmount.toString(),
-    dstToken.decimals
+    dstToken.decimals,
   );
   console.log(`You will receive ${formattedFinalAmount} BTCB on BNB chain.`);
 
@@ -187,7 +187,7 @@ export async function run() {
   const signature = await wallet._signTypedData(
     domain,
     { ExecuteHooks: types["ExecuteHooks"], Call: types["Call"] },
-    message
+    message,
   );
 
   // ----------------------------
@@ -232,7 +232,7 @@ export async function run() {
 
   console.log(
     "🕣 Getting quote...",
-    JSON.stringify(parameters, jsonReplacer, 2)
+    JSON.stringify(parameters, jsonReplacer, 2),
   );
 
   // TODO: This is the second quote we ask to the API. I understand why, its because first one is to estimate how many intermediate tokens we get, and the second one is to re-estimate once we have the hook. In principle, we should need one if we can use already a gas estimation and a mock hook at the begining.
@@ -242,11 +242,11 @@ export async function run() {
   const maxSellAmount = quoteResults.amountsAndCosts.afterSlippage.sellAmount;
   const maxSellAmountFormatted = ethers.utils.formatUnits(
     maxSellAmount,
-    srcToken.decimals
+    srcToken.decimals,
   );
 
   const confirmed = await confirm(
-    `You will sell at most ${maxSellAmountFormatted} GNO to buy ${formattedFinalAmount} BTCB on BNB chain. ok?`
+    `You will sell at most ${maxSellAmountFormatted} GNO to buy ${formattedFinalAmount} BTCB on BNB chain. ok?`,
   );
   if (!confirmed) {
     console.log("🚫 Aborted");
@@ -260,13 +260,13 @@ export async function run() {
 
   // Print the order creation
   console.log(
-    `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`
+    `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`,
   );
 
   // Wait for the cross-chain swap start
   console.log("🕣 Waiting for the cross-chain swap to start...");
   console.log(
-    `🔗 Swaps.io Explorer link: https://api.prod.swaps.io/api/v0/swaps/${swapHash}`
+    `🔗 Swaps.io Explorer link: https://api.prod.swaps.io/api/v0/swaps/${swapHash}`,
   );
   // TODO: Implement
 

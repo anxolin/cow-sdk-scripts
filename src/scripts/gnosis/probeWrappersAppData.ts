@@ -9,7 +9,7 @@ import axios from "axios";
  * `target`/`isOmittable` is out of date; the real schema puts it under `metadata` and uses
  * `address` + `is_omittable`.)
  *
- * The field is NOT in the deprecated `@cowprotocol/app-data`, which is why it looked missing — it
+ * The field is NOT in the deprecated `@cowprotocol/sdk-app-data`, which is why it looked missing — it
  * lives in `@cowprotocol/sdk-app-data` (5.3.1, schema v1.15.0, `LATEST_WRAPPERS_METADATA_VERSION`),
  * re-exported by `@cowprotocol/cow-sdk` 9.2.2 as `MetadataApi`.
  *
@@ -28,7 +28,10 @@ const WRAPPER_ADDRESS = "0x531636e6e18F3A52c283aCCda39D7185E4597A37";
 
 const metadataApi = new MetadataApi();
 
-async function upload(label: string, doc: Parameters<typeof metadataApi.getAppDataInfo>[0]) {
+async function upload(
+  label: string,
+  doc: Parameters<typeof metadataApi.getAppDataInfo>[0],
+) {
   const { appDataContent, appDataHex } = await metadataApi.getAppDataInfo(doc);
   console.log(`\n=== ${label} ===`);
   console.log("appDataContent:", appDataContent);
@@ -41,7 +44,7 @@ async function upload(label: string, doc: Parameters<typeof metadataApi.getAppDa
   } catch (e: any) {
     console.log(
       `❌ REJECTED (${e.response?.status})`,
-      JSON.stringify(e.response?.data ?? e.message)
+      JSON.stringify(e.response?.data ?? e.message),
     );
   }
 }

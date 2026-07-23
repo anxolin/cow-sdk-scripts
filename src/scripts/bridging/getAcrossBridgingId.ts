@@ -6,7 +6,7 @@ import { OrderBookApi } from "@cowprotocol/cow-sdk";
 
 import { getRpcProvider, getWallet } from "../../utils";
 import { Interface } from "ethers/lib/utils";
-import { latest as latestAppData } from "@cowprotocol/app-data";
+import { cowAppDataLatestScheme as latestAppData } from "@cowprotocol/sdk-app-data";
 
 export const ACROSS_SPOOK_CONTRACT_ADDRESSES: Partial<
   Record<TargetChainId, string>
@@ -47,7 +47,7 @@ async function getDepositId(
   chainId: SupportedChainId,
   orderId: string,
   settlementTx: string,
-  rpc: providers.JsonRpcProvider
+  rpc: providers.JsonRpcProvider,
 ) {
   const txReceipt = await rpc.getTransactionReceipt(settlementTx);
 
@@ -59,7 +59,7 @@ async function getDepositId(
   if (depositEvents.length === 0) {
     // This should never happen, means the hook was not triggered
     throw new Error(
-      "No deposit events found in the settlement tx. Are you sure the hook was triggered?"
+      "No deposit events found in the settlement tx. Are you sure the hook was triggered?",
     );
   }
 
@@ -73,7 +73,7 @@ async function getDepositId(
     console.log(
       `Across Deposit - depositId: ${
         deposit.depositId
-      }, Input: ${deposit.inputAmount.toString()}, Output: ${deposit.outputAmount.toString()}`
+      }, Input: ${deposit.inputAmount.toString()}, Output: ${deposit.outputAmount.toString()}`,
     );
   }
 
@@ -83,7 +83,7 @@ async function getDepositId(
   // Fetch from API the details of all the settlement orders
   const orderbookApi = new OrderBookApi({ chainId });
   const ordersFromSettlement = await Promise.all(
-    cowTradeEvents.map((tradeEvent) => orderbookApi.getOrder(orderId))
+    cowTradeEvents.map((tradeEvent) => orderbookApi.getOrder(orderId)),
   );
 
   // Filter orders, leaving only cross-chain orders using Across provider
@@ -102,7 +102,7 @@ async function getDepositId(
 
   // Find relative position for the orderId in the settlement tx
   const orderIndex = crossChainOrdersAcross.findIndex(
-    (order) => order.uid === orderId
+    (order) => order.uid === orderId,
   );
 
   // Get the depositId from the relative position
@@ -113,7 +113,7 @@ async function getDepositId(
 
 function getAcrossDepositEvents(
   chainId: SupportedChainId,
-  logs: providers.Log[]
+  logs: providers.Log[],
 ): AcrossDepositEvent[] {
   const spookContractAddress =
     ACROSS_SPOOK_CONTRACT_ADDRESSES[chainId]?.toLowerCase();
@@ -168,7 +168,7 @@ function getAcrossDepositEvents(
 
 function getCowTradeEvents(
   chainId: SupportedChainId,
-  logs: providers.Log[]
+  logs: providers.Log[],
 ): CowTradeEvent[] {
   const cowTradeEvents = logs.filter((log) => {
     return log.address.toLocaleLowerCase() === COW_TRADE_EVENT_TOPIC;
@@ -242,7 +242,7 @@ export function getPostHooks(fullAppData?: string): latestAppData.CoWHook[] {
 
 // TODO: Move to app-data project
 export function isAppDoc(
-  appData: unknown
+  appData: unknown,
 ): appData is latestAppData.AppDataRootSchema {
   return (
     typeof appData === "object" &&

@@ -10,7 +10,7 @@ import {
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
 
-import { MetadataApi } from "@cowprotocol/app-data";
+import { MetadataApi } from "@cowprotocol/sdk-app-data";
 import { confirm, getWallet, jsonReplacer } from "../../utils";
 import { bridgeWithXdaiBridge } from "../../contracts/xDaiBridge";
 import { createCowShedTx } from "../../contracts/cowShed";
@@ -28,7 +28,7 @@ export async function run() {
 
   // Define trade parameters
   console.log(
-    "Buy 1 DAI using USDC and bridge to Gnosis Chain using xDAI Bridge"
+    "Buy 1 DAI using USDC and bridge to Gnosis Chain using xDAI Bridge",
   );
 
   // Get raw transaction to bridge all available DAI from cow-shed using xDAI Bridge
@@ -39,7 +39,7 @@ export async function run() {
 
   console.log(
     "\n💰 Bridge tx:",
-    JSON.stringify(bridgeWithXdaiBridgeTx, jsonReplacer, 2)
+    JSON.stringify(bridgeWithXdaiBridgeTx, jsonReplacer, 2),
   );
 
   // Sign and encode the transaction
@@ -83,7 +83,7 @@ export async function run() {
 
   console.log(
     "🕣 Getting quote...",
-    JSON.stringify(parameters, jsonReplacer, 2)
+    JSON.stringify(parameters, jsonReplacer, 2),
   );
 
   const quote = await sdk.getQuote(parameters, { appData });
@@ -95,7 +95,7 @@ export async function run() {
   console.log(`You will get pay at most: ${maxSellAmountFormatted} USDC. ok?`);
 
   const confirmed = await confirm(
-    `You will sell at most ${maxSellAmountFormatted} USDC. ok?`
+    `You will sell at most ${maxSellAmountFormatted} USDC. ok?`,
   );
   if (!confirmed) {
     console.log("🚫 Aborted");
@@ -107,7 +107,7 @@ export async function run() {
 
   // Print the order creation
   console.log(
-    `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`
+    `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`,
   );
 
   // Wait for the bridge start

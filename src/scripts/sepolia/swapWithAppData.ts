@@ -8,7 +8,7 @@ import {
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
 import { getWallet } from "../../utils";
-import { MetadataApi } from "@cowprotocol/app-data";
+import { MetadataApi } from "@cowprotocol/sdk-app-data";
 
 export async function run() {
   const wallet = await getWallet(SupportedChainId.SEPOLIA);
@@ -47,6 +47,6 @@ export async function run() {
   const orderId = await sdk.postSwapOrder(parameters, { appData });
 
   console.log(
-    `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`
+    `Order created, id: https://explorer.cow.fi/sepolia/orders/${orderId}?tab=overview`,
   );
 }

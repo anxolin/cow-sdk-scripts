@@ -8,7 +8,7 @@ import {
 } from "@cowprotocol/cow-sdk";
 import { ethers } from "ethers";
 
-import { MetadataApi } from "@cowprotocol/app-data";
+import { MetadataApi } from "@cowprotocol/sdk-app-data";
 import { confirm, getWallet, jsonReplacer } from "../../utils";
 import { createCowShedTx } from "../../contracts/cowShed";
 import {
@@ -81,7 +81,7 @@ export async function run() {
 
   console.log(
     "\n💰 Bridge tx:",
-    JSON.stringify(bridgeWithXdaiBridgeTx, jsonReplacer, 2)
+    JSON.stringify(bridgeWithXdaiBridgeTx, jsonReplacer, 2),
   );
 
   // Sign and encode the transaction
@@ -126,7 +126,7 @@ export async function run() {
 
   console.log(
     "🕣 Getting quote...",
-    JSON.stringify(parameters, jsonReplacer, 2)
+    JSON.stringify(parameters, jsonReplacer, 2),
   );
 
   quote = await sdk.getQuote(parameters, { appData });
@@ -136,19 +136,19 @@ export async function run() {
     quoteResults.amountsAndCosts.afterSlippage.buyAmount;
   const minIntermediateTokenAmountFormatted = ethers.utils.formatUnits(
     minIntermediateTokenAmount,
-    intermediateTokenDecimals
+    intermediateTokenDecimals,
   );
   const sellAmountFormatted = ethers.utils.formatUnits(
     sellAmount,
-    sellTokenDecimals
+    sellTokenDecimals,
   );
 
   console.log(
-    `You will sell ${sellAmountFormatted} USDC and receive at least ${minIntermediateTokenAmountFormatted} ${intermediateTokenSymbol} (intermediate token). Then, it will be bridged to Base for WETH.`
+    `You will sell ${sellAmountFormatted} USDC and receive at least ${minIntermediateTokenAmountFormatted} ${intermediateTokenSymbol} (intermediate token). Then, it will be bridged to Base for WETH.`,
   );
 
   const confirmed = await confirm(
-    `You will bridge at least ${minIntermediateTokenAmountFormatted} ${intermediateTokenSymbol}. ok?`
+    `You will bridge at least ${minIntermediateTokenAmountFormatted} ${intermediateTokenSymbol}. ok?`,
   );
   if (!confirmed) {
     console.log("🚫 Aborted");
@@ -160,7 +160,7 @@ export async function run() {
 
   // Print the order creation
   console.log(
-    `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`
+    `ℹ️ Order created, id: https://explorer.cow.fi/orders/${orderId}?tab=overview`,
   );
 
   // Wait for the bridge start

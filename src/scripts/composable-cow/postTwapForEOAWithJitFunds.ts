@@ -12,7 +12,7 @@ import { Twap } from "@cowprotocol/sdk-composable";
 import { setGlobalAdapter } from "@cowprotocol/sdk-common";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 
-import { MetadataApi } from "@cowprotocol/app-data";
+import { MetadataApi } from "@cowprotocol/sdk-app-data";
 import { BigNumber, ethers } from "ethers";
 import {
   confirm,
@@ -57,7 +57,10 @@ export async function run() {
 
   // v9 SDK uses a global provider adapter. The composable order types and cow-shed
   // read it via `getGlobalAdapter()`, so it must be set before using them.
-  const adapter = new EthersV5Adapter({ provider: wallet.provider, signer: wallet });
+  const adapter = new EthersV5Adapter({
+    provider: wallet.provider,
+    signer: wallet,
+  });
   setGlobalAdapter(adapter);
 
   // Initialize the SDK with the wallet
