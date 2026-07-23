@@ -37,6 +37,7 @@ import { run as getEthFlowId } from "./scripts/ethflow/getEthFlowId";
 import { run as minimalAppData } from "./scripts/app-data/minimalAppData";
 import { run as getIpfsForLegacyDoc } from "./scripts/app-data/getIpfsForLegacyDoc";
 import { run as postTwapForEOA } from "./scripts/composable-cow/postTwapForEOA";
+import { run as postTwapForEOAWithJitFunds } from "./scripts/composable-cow/postTwapForEOAWithJitFunds";
 
 dotenv.config();
 
@@ -86,7 +87,8 @@ const JOBS: (() => Promise<unknown>)[] = [
   // getEthFlowId,
   // minimalAppData,
   // getIpfsForLegacyDoc,
-  postTwapForEOA,
+  // postTwapForEOA,
+  postTwapForEOAWithJitFunds,
 ];
 
 async function main() {
