@@ -4,7 +4,7 @@ import { ethers } from "ethers";
  * Minimal ABI for the `ComposableCowPoller` contract.
  *
  * It enables just-in-time funding for composable conditional orders: instead of
- * locking the whole notional up front, `topUp` pulls exactly the current discrete
+ * locking the whole notional up front, `pollFunds` pulls exactly the current discrete
  * order's `sellAmount` from a funder into the order owner, immediately before that
  * order settles.
  *
@@ -15,7 +15,7 @@ const COMPOSABLE_COW_POLLER_ABI = [
   "function scheduleId(address funder, address handler, address owner, bytes32 salt) external pure returns (bytes32)",
   "function register((address handler, address funder, address owner, bytes32 salt, bytes staticInput) schedule) external returns (bytes32 id)",
   "function revoke(bytes32 id) external",
-  "function topUp(bytes32 id) external",
+  "function pollFunds(bytes32 id) external",
   "function schedules(bytes32 id) external view returns (address handler, address funder, address owner, bytes32 salt, bytes staticInput)",
   "function lastFunded(bytes32 id) external view returns (bytes32)",
 ] as const;
