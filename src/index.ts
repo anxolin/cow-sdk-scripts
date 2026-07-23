@@ -25,6 +25,7 @@ import { run as approveTokenMainnet } from "./scripts/mainnet/approveTokenMainne
 import { run as getQuoteAndPostOrderMainnet } from "./scripts/mainnet/getQuoteAndPostOrder";
 import { run as approveTokenGnosis } from "./scripts/gnosis/approveTokenGnosis";
 import { run as postHookOrderGnosis } from "./scripts/gnosis/postHookOrder";
+import { run as probeWrappersAppData } from "./scripts/gnosis/probeWrappersAppData";
 import { run as swapAndBridgeSwapsIo } from "./scripts/bridging/swapAndBridgeSwapsIO";
 import { run as approveTokenArbitrum } from "./scripts/arbitrum/approveTokenArbitrum";
 import { run as swapAndBridgeAccrossArbitrum } from "./scripts/bridging/swapAndBridgeAccrossArbitrum";
@@ -92,7 +93,10 @@ const JOBS: (() => Promise<unknown>)[] = [
   // postTwapForEOAWithJitFunds,
 
   // Post a Gnosis order carrying CoW hooks in appData (enforceable-hooks assumption test)
-  postHookOrderGnosis,
+  // postHookOrderGnosis,
+
+  // Probe: does the Gnosis orderbook accept an appData doc with a `wrappers` field?
+  probeWrappersAppData,
 ];
 
 async function main() {
