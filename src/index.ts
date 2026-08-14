@@ -39,6 +39,7 @@ import { run as getIpfsForLegacyDoc } from "./scripts/app-data/getIpfsForLegacyD
 import { run as postTwapForEOA } from "./scripts/composable-cow/postTwapForEOA";
 import { run as postTwapForEOAWithJitFunds } from "./scripts/composable-cow/postTwapForEOAWithJitFunds";
 import { run as postTwapForEOAWithJitFundsSimplified } from "./scripts/composable-cow/postTwapForEOAWithJitFundsSimplified";
+import { run as postTwapForEOAWithJitFundsSimplifiedTx } from "./scripts/composable-cow/postTwapForEOAWithJitFundsSimplifiedTx";
 
 dotenv.config();
 
@@ -90,7 +91,8 @@ const JOBS: (() => Promise<unknown>)[] = [
   // getIpfsForLegacyDoc,
   // postTwapForEOA,
   // postTwapForEOAWithJitFunds,
-  postTwapForEOAWithJitFundsSimplified,
+  // postTwapForEOAWithJitFundsSimplified,
+  postTwapForEOAWithJitFundsSimplifiedTx,
 ];
 
 async function main() {
