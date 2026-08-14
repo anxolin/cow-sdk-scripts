@@ -22,7 +22,11 @@ import {
   printQuote,
 } from "../../utils";
 import { getErc20Contract } from "../../contracts/erc20";
-import { getComposableCowPollerContract } from "../../contracts/composable-cow-poller";
+import {
+  encodePollFunds,
+  getComposableCowPollerContract,
+  scheduleId as derivePollerScheduleId,
+} from "../../contracts/composable-cow-poller";
 import { getCowShedSdk } from "./cowShed";
 
 const DEFAULT_GAS_LIMIT = 500_000n;
@@ -46,7 +50,7 @@ const FIRST_ORDER_SLIPPAGE_BPS = 20000000000; // 200,000,000% // TODO: This was 
 
 // The TWAP handler (ComposableCoW order type). Deterministic across chains.
 const TWAP_HANDLER = "0x6cF1e9cA41f7611dEf408122793c358a3d11E5a5";
-// Gas budget for the topUp pre-hook on each part (SLOADs + getTradeableOrder + transferFrom).
+// Gas budget for the pollFunds pre-hook on each part (SLOADs + getTradeableOrder + transferFrom).
 const TOPUP_HOOK_GAS_LIMIT = "350000";
 
 const CHAIN_ID = SupportedChainId.GNOSIS_CHAIN;
@@ -103,7 +107,7 @@ export async function run() {
 
   // The poller schedule key. It is derived from appData-INDEPENDENT fields
   // (funder, handler, owner, salt), which is exactly what lets us embed
-  // `topUp(id)` as a pre-hook inside the TWAP's own appData: the order's `ctx`
+  // `pollFunds(id)` as a pre-hook inside the TWAP's own appData: the order's `ctx`
   // contains the appData hash, so keying on `ctx` would be circular, but `id`
   // is not. We choose the salt, so we can compute `id` before the appData.
   const poller = getComposableCowPollerContract(
@@ -111,12 +115,12 @@ export async function run() {
     wallet,
   );
   const twapSalt = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-  const id: string = await poller.scheduleId(
-    eoaTrader,
-    TWAP_HANDLER,
-    cowShed,
-    twapSalt,
-  );
+  const id: string = derivePollerScheduleId({
+    handler: TWAP_HANDLER,
+    funder: eoaTrader,
+    owner: cowShed,
+    salt: twapSalt,
+  });
   console.log("Poller schedule id:", id);
 
   // Describe the flow
@@ -136,24 +140,24 @@ The EOA keeps the 1 wei of ${twapSellToken.symbol}, which means that the EOA is 
 The order will have the side-effects described above. 
 
 Watch Tower will detect the TWAP and create each part, which will settle and send the proceeds back to the EOA.
-Each part carries a pre-hook (baked into the TWAP appData) that calls poller.topUp(id), pulling exactly that part's
+Each part carries a pre-hook (baked into the TWAP appData) that calls poller.pollFunds(id), pulling exactly that part's
 sell amount from the EOA into cow-shed right before it settles. No external keeper is needed.
 `,
   );
 
   // Generate app data for the TWAP, embedding a pre-hook with the polling
   const metadataApi = new MetadataApi();
-  const topUpCalldata = poller.interface.encodeFunctionData("topUp", [id]);
+  const pollFundsCalldata = encodePollFunds(id);
   const twapAppData = await metadataApi.generateAppDataDoc({
     appCode: APP_CODE,
     environment: "prod",
     metadata: {
       hooks: {
         pre: [
-          // Call: poll.topUp(id)
+          // Call: poller.pollFunds(id)
           {
             target: COMPOSABLE_COW_POLLER_ADDRESS,
-            callData: topUpCalldata,
+            callData: pollFundsCalldata,
             gasLimit: TOPUP_HOOK_GAS_LIMIT,
           },
         ],
@@ -219,7 +223,7 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
   const { handler, salt, staticInput } = twap.leaf;
 
   // Sanity: the handler/salt must be exactly what we derived `id` from, so the
-  // `topUp(id)` hook baked into the appData resolves to this very schedule.
+  // `pollFunds(id)` hook baked into the appData resolves to this very schedule.
   if (
     handler.toLowerCase() !== TWAP_HANDLER.toLowerCase() ||
     salt.toLowerCase() !== twapSalt.toLowerCase()

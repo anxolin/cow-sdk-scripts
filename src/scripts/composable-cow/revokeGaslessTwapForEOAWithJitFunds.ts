@@ -5,13 +5,17 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { areAddressesEqual, setGlobalAdapter } from "@cowprotocol/sdk-common";
-import { ComposableCowPoller, Twap } from "@cowprotocol/sdk-composable";
+import { Twap } from "@cowprotocol/sdk-composable";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 import { BigNumber, ethers } from "ethers";
 
 import { APP_CODE, COW_VAULT_RELAYER_CONTRACT } from "../../const";
 import { confirm, getRpcProvider, getWallet } from "../../utils";
 import { getCowShedSdk } from "./cowShed";
+import {
+  encodeRevokeFromShed,
+  getComposableCowPollerContract,
+} from "../../contracts/composable-cow-poller";
 import {
   getPermitTokenContract,
   optionalPermitCall,
@@ -40,7 +44,7 @@ export async function run(): Promise<void> {
 
   const adapter = new EthersV5Adapter({ provider, signer: wallet });
   setGlobalAdapter(adapter);
-  const pollerSdk = new ComposableCowPoller(pollerAddress);
+  const poller = getComposableCowPollerContract(pollerAddress, provider);
   const cowShedSdk = getCowShedSdk(adapter);
   const cowShed = cowShedSdk.getCowShedAccount(CHAIN_ID, funder);
   const token = getPermitTokenContract(
@@ -48,8 +52,8 @@ export async function run(): Promise<void> {
     new ethers.VoidSigner(funder, provider),
   );
   const [schedule, composableCow] = await Promise.all([
-    pollerSdk.schedule(scheduleId),
-    pollerSdk.composableCow(),
+    poller.schedules(scheduleId),
+    poller.COMPOSABLE_COW(),
   ]);
   if (
     !areAddressesEqual(composableCow, COMPOSABLE_COW_CONTRACT_ADDRESS[CHAIN_ID])
@@ -60,6 +64,11 @@ export async function run(): Promise<void> {
   }
   if (schedule.funder === ethers.constants.AddressZero) {
     throw new Error("Poller schedule does not exist");
+  }
+  // Revocation leaves the funder as a used-key tombstone but clears the handler, so a
+  // zero handler means this key was already revoked.
+  if (schedule.handler === ethers.constants.AddressZero) {
+    throw new Error("Poller schedule was already revoked");
   }
   if (!areAddressesEqual(schedule.funder, funder)) {
     throw new Error("The configured funder does not own the Poller schedule");
@@ -91,45 +100,29 @@ export async function run(): Promise<void> {
   }
   if (
     !(await confirm(
-      "Sign three requests to revoke this JIT-funded TWAP, plus a permit if its Vault Relayer allowance is insufficient?",
+      "Sign two requests to revoke this JIT-funded TWAP, plus a permit if its Vault Relayer allowance is insufficient?",
     ))
   ) {
     return;
   }
 
-  // Snapshot the Poller nonce before signing. Any intervening Poller action invalidates
-  // the revoke signature, so the script checks the Poller nonce again before each quote.
-  const [pollerNonce, decimals, currentAllowance] = await Promise.all([
-    pollerSdk.nonce(funder),
+  const [decimals, currentAllowance] = await Promise.all([
     token.decimals(),
     token.allowance(funder, COW_VAULT_RELAYER_CONTRACT),
   ]);
+  // Nothing to snapshot: revocation is authorized by the CowShed being `proxyOf(funder)`,
+  // so there is no signature that an intervening Poller action could invalidate.
   const assertRevokeReplaySafe = async () => {
-    if (BigInt(await pollerSdk.nonce(funder)) !== BigInt(pollerNonce)) {
-      throw new Error(
-        "Poller nonce changed before submission; rebuild and re-sign the revoke",
-      );
+    const { handler } = await poller.schedules(scheduleId);
+    if (handler === ethers.constants.AddressZero) {
+      throw new Error("Poller schedule was revoked before submission");
     }
   };
 
-  // Required signature 1/3: the EOA signs the Poller action. The CowShed submits it later,
-  // so calling `revoke` directly would fail the Poller's funder check.
-  console.log("Required signature 1/3: Poller revoke authorization");
-  const revokeTypedData = pollerSdk.getRevokeTypedData({
-    chainId: CHAIN_ID,
-    id: scheduleId,
-    funder,
-    nonce: pollerNonce,
-    deadline,
-  });
-  const revokeSignature = await wallet._signTypedData(
-    revokeTypedData.domain,
-    revokeTypedData.types,
-    revokeTypedData.message,
-  );
-  // Required signature 2/3: CowShed revokes the Poller schedule and removes the
-  // parent TWAP authorization.
-  console.log("Required signature 2/3: CowShed revoke bundle");
+  // Required signature 1/2: CowShed revokes the Poller schedule and removes the parent
+  // TWAP authorization. Being `proxyOf(funder)`, the shed needs no separate Poller
+  // signature from the EOA.
+  console.log("Required signature 1/2: CowShed revoke bundle");
   const call = (target: string, callData: string) => ({
     target,
     callData,
@@ -142,7 +135,12 @@ export async function run(): Promise<void> {
     calls: [
       call(
         pollerAddress,
-        pollerSdk.revokeWithSignature(scheduleId, deadline, revokeSignature),
+        encodeRevokeFromShed({
+          handler: schedule.handler,
+          funder,
+          owner: cowShed,
+          salt: schedule.salt,
+        }),
       ),
       call(
         COMPOSABLE_COW_CONTRACT_ADDRESS[CHAIN_ID],
@@ -254,7 +252,7 @@ export async function run(): Promise<void> {
   }
   let postSwapOrderFromQuote = initialQuote.postSwapOrderFromQuote;
   if (permitContext) {
-    console.log("Optional signature 3/4: revoke-order permit");
+    console.log("Optional signature 2/3: revoke-order permit");
     const message = permitContext.message(currentAllowance.add(debit));
     const permitSignature = ethers.utils.splitSignature(
       await wallet._signTypedData(permitContext.domain, PERMIT_TYPES, message),
@@ -287,8 +285,8 @@ export async function run(): Promise<void> {
 
   console.log(
     needsPermit
-      ? "Signature 4/4: hook-aware revoke order"
-      : "Required signature 3/3: hook-aware revoke order",
+      ? "Signature 3/3: hook-aware revoke order"
+      : "Required signature 2/2: hook-aware revoke order",
   );
   const { orderId } = await postSwapOrderFromQuote();
   console.log(`Submitted: https://explorer.cow.fi/gc/orders/${orderId}`);
