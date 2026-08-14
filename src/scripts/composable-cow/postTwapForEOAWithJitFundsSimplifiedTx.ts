@@ -9,7 +9,7 @@ import {
   OrderBookApi,
 } from "@cowprotocol/cow-sdk";
 import { Twap } from "@cowprotocol/sdk-composable";
-import { setGlobalAdapter } from "@cowprotocol/sdk-common";
+import { areAddressesEqual, setGlobalAdapter } from "@cowprotocol/sdk-common";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 
 import { MetadataApi } from "@cowprotocol/app-data";
@@ -19,17 +19,15 @@ import {
   debugStringify,
   getExplorerUrl,
   getWallet,
-  printQuote,
 } from "../../utils";
 import { getErc20Contract } from "../../contracts/erc20";
 import {
   encodePollFunds,
+  encodeRegisterFromShed,
   getComposableCowPollerContract,
   scheduleId as derivePollerScheduleId,
 } from "../../contracts/composable-cow-poller";
 import { getCowShedSdk } from "./cowShed";
-
-const DEFAULT_GAS_LIMIT = 500_000n;
 
 interface Token {
   symbol: string;
@@ -46,8 +44,6 @@ const TOKENS = {
 const TWAP_PARTS = 2;
 const TWAP_TIME_BETWEEN_PARTS = 120; // 2min
 const TWAP_SLIPPAGE_BPS = 1000; // 1000 bps (10%)
-const FIRST_ORDER_SLIPPAGE_BPS = 50; // 50 bps (0.5%)
-const FIRST_ORDER_SELL_AMOUNT = "1"; // sell=buy order: sell 1 unit of the TWAP sell token
 
 // The TWAP handler (ComposableCoW order type). Deterministic across chains.
 const TWAP_HANDLER = "0x6cF1e9cA41f7611dEf408122793c358a3d11E5a5";
@@ -56,6 +52,14 @@ const TOPUP_HOOK_GAS_LIMIT = "350000";
 
 const CHAIN_ID = SupportedChainId.GNOSIS_CHAIN;
 
+/**
+ * Same setup as `postTwapForEOAWithJitFundsSimplified`, without the sell=buy order.
+ *
+ * There, the shed bundle rode as a post-hook so the setup was gasless. Here the EOA
+ * just sends the bundle itself, which trades that gaslessness for a much shorter
+ * script: no quote, no appData hooks, no order to place. The TWAP that comes out is
+ * identical, and its parts are still funded just-in-time.
+ */
 export async function run() {
   const wallet = await getWallet(CHAIN_ID);
   const eoaTrader = wallet.address as `0x${string}`;
@@ -68,11 +72,11 @@ export async function run() {
   });
   setGlobalAdapter(adapter);
 
-  // Initialize the SDK with the wallet
+  // Only used to quote a part, so we can pick the TWAP's buy amount
   const sdk = new TradingSdk(
     {
       chainId: CHAIN_ID,
-      signer: wallet, // Use a signer
+      signer: wallet,
       appCode: APP_CODE,
     },
     {},
@@ -81,23 +85,6 @@ export async function run() {
 
   // Get some info about the assets
   const { twapSellToken, twapBuyToken } = await getAssetsInfo({ wallet });
-
-  // First order (sell=buy order):
-  //   The sell=buy order'sonly purpose is to get the post-hook (which creates the
-  //   TWAP) executed gaslessly via a settlement.
-  //
-  //   It does NOT move the full TWAP sell amount: This is why no the recipient of the funds is still the EOA.
-  //   as opposed to what src/scripts/composable-cow/postTwapForEOA.ts does
-  //
-  //   Thanks to JIT funding, each part is pulled from the EOA right before it settles.
-  const firstOrderSellAmount = ethers.utils.parseUnits(
-    FIRST_ORDER_SELL_AMOUNT,
-    twapSellToken.decimals,
-  ); // sell=buy order: Sell 1 sDAI (and buy back sDAI, minus the fee)
-  const firstOrderSellAmountFormatted = ethers.utils.formatUnits(
-    firstOrderSellAmount,
-    twapSellToken.decimals,
-  );
 
   // TWAP Order:
   const fullSellAmount = ethers.utils.parseUnits("0.2", twapSellToken.decimals); // TWAP order: Sell a total of 0.2 sDAI
@@ -116,11 +103,8 @@ export async function run() {
   const cowShed = cowShedSdk.getCowShedAccount(CHAIN_ID, eoaTrader);
   console.log("CowShed account:", cowShed);
 
-  // The poller schedule key. It is derived from appData-INDEPENDENT fields
-  // (funder, handler, owner, salt), which is exactly what lets us embed
-  // `pollFunds(id)` as a pre-hook inside the TWAP's own appData: the order's `ctx`
-  // contains the appData hash, so keying on `ctx` would be circular, but `id`
-  // is not. We choose the salt, so we can compute `id` before the appData.
+  // The poller schedule key is derived from (funder, handler, owner, salt).`pollFunds(id)`
+  // The id is used as a pre-hook inside the TWAP's own appData
   const poller = getComposableCowPollerContract(
     COMPOSABLE_COW_POLLER_ADDRESS,
     wallet,
@@ -134,21 +118,27 @@ export async function run() {
   });
   console.log("Poller schedule id:", id);
 
+  // Verify that the shed matches the poller.factory.proxyOf(eoaTrader)
+  const pollerShedFactory: string = await poller.COW_SHED_FACTORY();
+  const shedFromPollerFactory: string = await new ethers.Contract(
+    pollerShedFactory,
+    ["function proxyOf(address owner) view returns (address)"],
+    wallet.provider,
+  ).proxyOf(eoaTrader);
+  if (!areAddressesEqual(shedFromPollerFactory, cowShed)) {
+    throw new Error(
+      `Poller pins CowShed factory ${pollerShedFactory}, which derives ${shedFromPollerFactory} for this funder, not ${cowShed}`,
+    );
+  }
+
   // Describe the flow
   console.log(
     `TWAP sell ${fullSellAmountFormatted} ${twapSellToken.symbol} for ${twapBuyToken.symbol} in ${TWAP_PARTS} parts (funded just-in-time).
 
-The setup is done with a gasless sell=buy order with a post-hook:
-  - Sell=buy order: SELL ${firstOrderSellAmountFormatted} ${twapSellToken.symbol} for ${twapSellToken.symbol} (sell == buy)
-  - Order executes a post-hook (via cow-shed): 
-      - Approve the Vault Relayer
-      - Create the TWAP. Owner of the TWAP is cow-shed (${cowShed}).
-      - Technically, we can include more things here which are left out of this PoC but are a good idea for the production flow:
-         - Approve the ComposableCowPoller 
-         - Register the JIT funding schedule on ComposableCowPoller
-
-The EOA gets the ${twapSellToken.symbol} back (minus the fee), which means that the EOA is the recipient of the first order.
-The order will have the side-effects described above. 
+The setup is a single transaction from the EOA to cow-shed, executing:
+  - Register the JIT funding schedule on ComposableCowPoller (the shed registers on the EOA's behalf)
+  - Approve the Vault Relayer
+  - Create the TWAP. Owner of the TWAP is cow-shed (${cowShed}).
 
 Watch Tower will detect the TWAP and create each part, which will settle and send the proceeds back to the EOA.
 Each part carries a pre-hook (baked into the TWAP appData) that calls poller.pollFunds(id), pulling exactly that part's
@@ -182,10 +172,8 @@ sell amount from the EOA into cow-shed right before it settles. No external keep
     chainId: CHAIN_ID,
   });
 
-  // Quote a single part (sell token -> buy token) to derive a sensible buy amount
-  // limit. We pass our slippage tolerance so `afterSlippage.buyAmount` is the
-  // minimum we are willing to receive per part. The TWAP's total buy amount is
-  // then that per-part minimum scaled by the number of parts.
+  // Quote a single part to derive the TWAP's buy amount: `afterSlippage.buyAmount` is
+  // the minimum we accept per part, scaled by the number of parts.
   const { quoteResults: partQuote } = await sdk.getQuote({
     kind: OrderKind.SELL,
     sellToken: twapSellToken.address,
@@ -196,8 +184,6 @@ sell amount from the EOA into cow-shed right before it settles. No external keep
     owner: eoaTrader,
     slippageBps: TWAP_SLIPPAGE_BPS,
   });
-  // Expected amount (net of costs, before slippage) and the minimum we will sign
-  // (after slippage), both per part and scaled to the whole TWAP.
   const expectedPartBuyAmount = BigNumber.from(
     partQuote.amountsAndCosts.afterNetworkCosts.buyAmount,
   );
@@ -231,7 +217,7 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
   // `ctx == ComposableCoW.hash(params) == twap.id` is the order's cabinet key.
   // The poller schedule is keyed by the appData-independent `id` instead.
   const ctx = twap.id;
-  const { handler, salt, staticInput } = twap.leaf;
+  const { handler, salt } = twap.leaf;
 
   // Sanity: the handler/salt must be exactly what we derived `id` from, so the
   // `pollFunds(id)` hook baked into the appData resolves to this very schedule.
@@ -254,9 +240,15 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
   console.log("Uploading TWAP app data to API...");
   await orderBookApi.uploadAppData(twapAppDataHex, twapAppDataContent);
 
-  // Post-hook: approve the Vault Relayer (so each part can settle from cow-shed)
-  // and create the TWAP. Both are fund-less calls, so cow-shed never needs to
-  // hold the full TWAP sell amount up front.
+  // The schedule the shed registers: tokens are pulled from the EOA (funder) into the
+  // shed (owner, and what the poller checks the caller against).
+  const schedule = {
+    ...twap.leaf,
+    funder: eoaTrader,
+    owner: cowShed,
+  };
+  const registerFromShedCalldata = encodeRegisterFromShed(schedule);
+
   const approveSellTokenCalldata =
     twapSellToken.contract.interface.encodeFunctionData("approve", [
       COW_VAULT_RELAYER_CONTRACT,
@@ -268,101 +260,49 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
     `Deadline: ${deadline} (${new Date(Number(deadline) * 1000).toISOString()})`,
   );
 
-  const { signedMulticall: approveAndTwap, gasLimit: approveAndTwapGasLimit } =
+  // Bundle all the calls that cow-shed needs to execute. Same bundle as the post-hook
+  // version, we just send it ourselves instead of having a settlement do it.
+  const call = (target: string, callData: string) => ({
+    target,
+    callData,
+    value: 0n,
+    isDelegateCall: false,
+    allowFailure: false,
+  });
+  // No `defaultGasLimit` on purpose: signCalls estimates the factory call, so a bundle
+  // that would revert fails here rather than on-chain.
+  const { signedMulticall: registerApproveAndTwap, gasLimit } =
     await cowShedSdk.signCalls({
       chainId: CHAIN_ID,
       calls: [
-        {
-          callData: approveSellTokenCalldata,
-          target: twapSellToken.address,
-          value: 0n,
-          isDelegateCall: false,
-          allowFailure: true,
-        },
-        {
-          callData: twap.createCalldata,
-          target: COMPOSABLE_COW_CONTRACT_ADDRESS[CHAIN_ID],
-          value: 0n,
-          isDelegateCall: false,
-          allowFailure: true,
-        },
+        // Register schedule
+        call(COMPOSABLE_COW_POLLER_ADDRESS, registerFromShedCalldata),
+
+        // Approve vault relayer
+        call(twapSellToken.address, approveSellTokenCalldata),
+
+        // Create TWAP
+        call(COMPOSABLE_COW_CONTRACT_ADDRESS[CHAIN_ID], twap.createCalldata),
       ],
       deadline,
       signer: wallet,
-      defaultGasLimit: DEFAULT_GAS_LIMIT,
     });
-  console.log("Signed approve+twap calldata:", approveAndTwap);
-
-  // Sell=buy order (so, it's a no-operation order)
-  // Both sellToken and buyOrder matches the TWAP's sellToken
-  // The post-hook that creates the TWAP.
-  // It does not move the full TWAP sell amount:
-  //   - This is why the trade amount tries to be small (SELL 1 sDAI, out of which only the fee is actually spent)
-  //   - Because funds don't arrive to cow-shed, the recipient can be the EOA (this is where the sDAI is bought back)
-  //   - The funds will be pulled in follow up order's hook (orders will automatically be created by watch-tower)
-  const { quoteResults, postSwapOrderFromQuote } = await sdk.getQuote(
-    {
-      kind: OrderKind.SELL,
-      sellToken: twapSellToken.address,
-      sellTokenDecimals: twapSellToken.decimals,
-      buyToken: twapSellToken.address, // sell == buy
-      buyTokenDecimals: twapSellToken.decimals,
-      amount: firstOrderSellAmount.toString(), // sell 1 sDAI
-      receiver: eoaTrader, // bought tokens stay with the trader; cow-shed needs no funds until each part is settled
-      owner: eoaTrader,
-      partiallyFillable: false,
-      validFor: 1800,
-      slippageBps: FIRST_ORDER_SLIPPAGE_BPS,
-    },
-    {
-      appData: {
-        appCode: APP_CODE,
-        metadata: {
-          hooks: {
-            post: [
-              // Approve the Vault Relayer and create the TWAP
-              {
-                callData: approveAndTwap.data,
-                gasLimit: approveAndTwapGasLimit.toString(),
-                target: approveAndTwap.to,
-                dappId:
-                  "cow-sdk-scripts://composable-cow/post-twap-for-eoa-jit",
-              },
-            ],
-          },
-        },
-      },
-    },
-  );
-
-  // Print the quote
-  printQuote(quoteResults);
-
-  // Calculate the maximum fee we will pay for the first order: we sell a fixed
-  // amount and get back at least `afterSlippage.buyAmount` of the same token, so
-  // the difference is the most the order can cost us.
-  const firstOrderMaxFee = firstOrderSellAmount.sub(
-    quoteResults.amountsAndCosts.afterSlippage.buyAmount,
-  );
-  const firstOrderMaxFeeFormatted = ethers.utils.formatUnits(
-    firstOrderMaxFee,
-    twapSellToken.decimals,
-  );
+  console.log("Signed register+approve+twap calldata:", registerApproveAndTwap);
+  console.log("Estimated gas for the cow-shed transaction:", gasLimit);
 
   // Ask for confirmation before doing anything on-chain
   const confirmed = await confirm(
     `This will:
-  1. Approve the Vault Relayer to spend ${firstOrderSellAmountFormatted} ${twapSellToken.symbol} (for the sell=buy order).
-  2. Approve the ComposableCowPoller to spend up to ${fullSellAmountFormatted} ${twapSellToken.symbol} (the full TWAP sell amount, pulled JIT).
-  3. Register the JIT funding schedule on the poller (funder: your EOA, owner: cow-shed).
-  4. Place the sell=buy order (SELL ${firstOrderSellAmountFormatted} ${twapSellToken.symbol} for ${twapSellToken.symbol}), whose post-hook creates the TWAP.
+  1. Approve the ComposableCowPoller to spend up to ${fullSellAmountFormatted} ${twapSellToken.symbol} (the full TWAP sell amount, pulled JIT).
+  2. Send ONE transaction to cow-shed, which registers the schedule, approves the Vault Relayer and creates the TWAP.
   ...
-  5. [watch-tower] Detects the TWAP and creates each part, which settle and proceeds are sent back to the EOA. 
+  3. [watch-tower] Detects the TWAP and creates each part, which settle and proceeds are sent back to the EOA.
 
 🥳 Each part will poll ${partSellAmountFormatted} ${twapSellToken.symbol} from your EOA before filling.
 
+Unlike postTwapForEOAWithJitFundsSimplified, there is no sell=buy order: you pay gas for the setup instead of a fee.
+
 Your EOA will receive: ~${fmt(expectedTwapBuyAmount)} (expected), at least ${fmt(twapBuyAmount)} (min, after ${TWAP_SLIPPAGE_BPS / 100}% slippage) across the ${TWAP_PARTS} parts.
-You will pay at most ${firstOrderMaxFeeFormatted} ${twapSellToken.symbol} for placing and setting up the TWAP.
 
 ok?`,
   );
@@ -371,19 +311,8 @@ ok?`,
     return;
   }
 
-  // 1. Approve the Vault Relayer for the sell=buy order's sell token. The whole
-  //    sell amount is pulled at settlement, even though most of it is bought
-  //    straight back (only the fee is actually spent).
-  await ensureAllowance({
-    token: twapSellToken,
-    owner: eoaTrader,
-    spender: COW_VAULT_RELAYER_CONTRACT,
-    requiredAmount: firstOrderSellAmount,
-    label: "Vault Relayer",
-  });
-
-  // 2. Approve the poller to pull the full TWAP sell amount from the EOA over time
-  //    NOTE: For permit tokens, we can include the permit call as part of the first order
+  // 1. Approve the poller to pull the full TWAP sell amount from the EOA over time
+  //    NOTE: For permit tokens, this could be another call in the bundle below
   await ensureAllowance({
     token: twapSellToken,
     owner: eoaTrader,
@@ -392,36 +321,36 @@ ok?`,
     label: "ComposableCowPoller",
   });
 
-  // 3. Register the JIT funding schedule (only the funder may register).
-  // NOTE: We could make the poller registration also accept a signature.
-  // This way, this part can always be chained as part of the first-order post-hook and we don't need this transaction
+  // Schedule keys are single-use, so check ours survived the approval.
   const existing = await poller.schedules(id);
   if (existing.funder !== ethers.constants.AddressZero) {
-    console.log(
-      `Schedule already registered for id ${id} (funder: ${existing.funder}). Skipping register.`,
+    throw new Error(
+      `Schedule key ${id} is already used (funder: ${existing.funder}); re-run to build one with a fresh salt`,
     );
-  } else {
-    console.log("Registering JIT funding schedule on the poller...");
-    const registerTx = await poller.register({
-      handler,
-      funder: eoaTrader,
-      owner: cowShed,
-      salt,
-      staticInput,
-    });
-    console.log("Register tx:", getExplorerUrl(CHAIN_ID, registerTx.hash));
-    await registerTx.wait();
-    console.log("Schedule registered");
   }
 
-  // 4. Place the sell=buy order. Its post-hook creates the TWAP gaslessly.
-  const { orderId } = await postSwapOrderFromQuote();
+  // 2. Send the bundle. The gas limit is left to the provider so that a bundle which
+  //    became unsendable in the meantime reverts on estimation, before spending gas.
+  console.log("Sending the cow-shed transaction...");
+  const tx = await wallet.sendTransaction({
+    to: registerApproveAndTwap.to,
+    data: registerApproveAndTwap.data,
+    value: registerApproveAndTwap.value,
+  });
+  console.log("CowShed tx:", getExplorerUrl(CHAIN_ID, tx.hash));
+  const receipt = await tx.wait();
   console.log(
-    `Sell=buy order created, id: https://explorer.cow.fi/gc/orders/${orderId}?tab=overview`,
+    `Mined in block ${receipt.blockNumber}, gas used ${receipt.gasUsed}`,
   );
+
+  // The bundle is all-or-nothing, so a registered schedule means the TWAP exists too.
+  const registered = await poller.schedules(id);
+  if (registered.funder === ethers.constants.AddressZero) {
+    throw new Error(`Schedule ${id} is still not registered after ${tx.hash}`);
+  }
   console.log(
-    `Once it settles, the TWAP (ctx ${ctx}) will be live and funded (just-in-time). 
-    
+    `Schedule registered (funder ${registered.funder}), TWAP (ctx ${ctx}) is live and funded just-in-time.
+
 Monitor parts in https://explorer.cow.fi/gc/address/${cowShed}`,
   );
 }

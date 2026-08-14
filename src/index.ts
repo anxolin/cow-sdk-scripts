@@ -38,6 +38,8 @@ import { run as minimalAppData } from "./scripts/app-data/minimalAppData";
 import { run as getIpfsForLegacyDoc } from "./scripts/app-data/getIpfsForLegacyDoc";
 import { run as postTwapForEOA } from "./scripts/composable-cow/postTwapForEOA";
 import { run as postTwapForEOAWithJitFunds } from "./scripts/composable-cow/postTwapForEOAWithJitFunds";
+import { run as postTwapForEOAWithJitFundsSimplified } from "./scripts/composable-cow/postTwapForEOAWithJitFundsSimplified";
+import { run as postTwapForEOAWithJitFundsSimplifiedTx } from "./scripts/composable-cow/postTwapForEOAWithJitFundsSimplifiedTx";
 
 dotenv.config();
 
@@ -88,7 +90,9 @@ const JOBS: (() => Promise<unknown>)[] = [
   // minimalAppData,
   // getIpfsForLegacyDoc,
   // postTwapForEOA,
-  postTwapForEOAWithJitFunds,
+  // postTwapForEOAWithJitFunds,
+  // postTwapForEOAWithJitFundsSimplified,
+  postTwapForEOAWithJitFundsSimplifiedTx,
 ];
 
 async function main() {

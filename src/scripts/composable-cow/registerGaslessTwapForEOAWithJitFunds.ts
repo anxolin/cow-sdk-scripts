@@ -7,13 +7,19 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { areAddressesEqual, setGlobalAdapter } from "@cowprotocol/sdk-common";
-import { ComposableCowPoller, Twap } from "@cowprotocol/sdk-composable";
+import { Twap } from "@cowprotocol/sdk-composable";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 import { BigNumber, ethers } from "ethers";
 
 import { APP_CODE, COW_VAULT_RELAYER_CONTRACT } from "../../const";
 import { confirm, getRpcProvider, getWallet } from "../../utils";
 import { getCowShedSdk } from "./cowShed";
+import {
+  encodePollFunds,
+  encodeRegisterFromShed,
+  getComposableCowPollerContract,
+  scheduleId as deriveScheduleId,
+} from "../../contracts/composable-cow-poller";
 import {
   getPermitTokenContract,
   optionalPermitCall,
@@ -44,7 +50,7 @@ export async function run(): Promise<void> {
   }
   const adapter = new EthersV5Adapter({ provider, signer: wallet });
   setGlobalAdapter(adapter);
-  const pollerSdk = new ComposableCowPoller(pollerAddress);
+  const poller = getComposableCowPollerContract(pollerAddress, provider);
 
   const token = getPermitTokenContract(
     SDAI,
@@ -52,11 +58,13 @@ export async function run(): Promise<void> {
   );
   const cowShedSdk = getCowShedSdk(adapter);
   const cowShed = cowShedSdk.getCowShedAccount(CHAIN_ID, funder);
-  const [decimals, currentPollerAllowance, composableCow] = await Promise.all([
-    token.decimals(),
-    token.allowance(funder, pollerAddress),
-    pollerSdk.composableCow(),
-  ]);
+  const [decimals, currentPollerAllowance, composableCow, pollerShedFactory] =
+    await Promise.all([
+      token.decimals(),
+      token.allowance(funder, pollerAddress),
+      poller.COMPOSABLE_COW(),
+      poller.COW_SHED_FACTORY(),
+    ]);
   if (
     !areAddressesEqual(composableCow, COMPOSABLE_COW_CONTRACT_ADDRESS[CHAIN_ID])
   ) {
@@ -64,17 +72,49 @@ export async function run(): Promise<void> {
       "Poller is configured for a different ComposableCoW contract",
     );
   }
+  // The Poller only accepts registrations from `proxyOf(funder)` on the factory it pins,
+  // so a mismatch here would fail on-chain with UnauthorizedShed.
+  const shedFromPollerFactory = await new ethers.Contract(
+    pollerShedFactory,
+    ["function proxyOf(address owner) view returns (address)"],
+    provider,
+  ).proxyOf(funder);
+  if (!areAddressesEqual(shedFromPollerFactory, cowShed)) {
+    throw new Error(
+      `Poller pins CowShed factory ${pollerShedFactory}, which derives ${shedFromPollerFactory} for this funder, not ${cowShed}`,
+    );
+  }
   const fullSellAmount = ethers.utils.parseUnits("0.2", decimals);
 
   const salt = ethers.utils.hexlify(ethers.utils.randomBytes(32));
   // The ID excludes appData, so pollFunds(id) can be embedded in the TWAP's own
   // appData without creating a circular hash dependency.
-  const scheduleId = pollerSdk.scheduleId({
+  const scheduleKey = {
     handler: TWAP_HANDLER,
     funder,
     owner: cowShed,
     salt,
+  };
+  const scheduleId = deriveScheduleId(scheduleKey);
+  // Cross-check the local derivation against the deployment we are about to use.
+  const onchainScheduleId = await poller.scheduleId({
+    ...scheduleKey,
+    staticInput: "0x",
   });
+  if (onchainScheduleId.toLowerCase() !== scheduleId.toLowerCase()) {
+    throw new Error("Local scheduleId derivation disagrees with the Poller");
+  }
+  // Schedule keys are single-use: once registered or revoked, the key is burned forever and
+  // re-registering needs a new salt. A fresh random salt makes a clash implausible, but the
+  // key can also be burned deliberately by a revoke, so check before and after signing.
+  const assertScheduleKeyFree = async () => {
+    const { funder: usedBy } = await poller.schedules(scheduleId);
+    if (usedBy !== ethers.constants.AddressZero) {
+      throw new Error(
+        `Schedule key ${scheduleId} is already used; rebuild with a fresh salt`,
+      );
+    }
+  };
 
   const metadataApi = new MetadataApi();
   const twapAppData = await metadataApi.generateAppDataDoc({
@@ -85,7 +125,7 @@ export async function run(): Promise<void> {
         pre: [
           {
             target: pollerAddress,
-            callData: pollerSdk.pollFunds(scheduleId),
+            callData: encodePollFunds(scheduleId),
             gasLimit: "350000",
           },
         ],
@@ -158,24 +198,62 @@ export async function run(): Promise<void> {
   );
 
   const needsPollerPermit = currentPollerAllowance.lt(fullSellAmount);
-  const signatureCount = needsPollerPermit ? 5 : 4;
+  const needsVaultPermit = currentVaultAllowance.lt(
+    BigNumber.from(setupTrade.amount),
+  );
+  // Registration now rides inside the CowShed bundle, so there is no separate Poller
+  // signature. What is left is the bundle, the setup order, and permits only when an
+  // allowance is actually short.
+  const steps = [
+    ...(needsPollerPermit
+      ? [
+          `Permit Poller to pull ${ethers.utils.formatUnits(fullSellAmount, decimals)} sDAI when needed.`,
+        ]
+      : []),
+    "Sign the CowShed setup bundle (registers the schedule, approves VaultRelayer, creates the TWAP).",
+    ...(needsVaultPermit
+      ? ["Permit the setup order's VaultRelayer debit."]
+      : []),
+    "Sign and submit the setup order.",
+  ];
+  const signatureCount = steps.length;
   console.log(`Gasless JIT TWAP registration:
-  1. Authorize Poller registration.
-  2. Permit Poller to pull ${ethers.utils.formatUnits(fullSellAmount, decimals)} sDAI when needed.
-  3. Sign the CowShed setup bundle.
-  4. Permit the setup order's VaultRelayer debit.
-  5. Sign and submit the setup order.
+${steps.map((step, index) => `  ${index + 1}. ${step}`).join("\n")}
 
 After setup settles, each TWAP part calls pollFunds(${scheduleId}) before settlement.`);
   console.log({
     mode: broadcast ? "broadcast" : "dry-run",
     funder,
     cowShed,
+    pollerAddress,
+    pollerShedFactory,
     scheduleId,
     parentTwapId: twap.id,
-    pollerPermit,
+    signatureCount,
+    needsPollerPermit,
+    needsVaultPermit,
+    pollerPermit: needsPollerPermit ? pollerPermit : undefined,
     twap: twap.leaf,
   });
+  // Prove the exact registration calldata the bundle will carry is accepted, by eth_call-ing
+  // it as the shed. Nothing is signed or sent; a revert here means the bundle would fail.
+  const registerCallData = encodeRegisterFromShed(schedule);
+  try {
+    const returned = await provider.call({
+      from: cowShed,
+      to: pollerAddress,
+      data: registerCallData,
+    });
+    console.log(
+      `Simulated registerFromShed as the CowShed: returns ${returned}` +
+        (returned.endsWith(scheduleId.slice(2)) ? " (matches scheduleId)" : ""),
+    );
+  } catch (error) {
+    throw new Error(
+      `registerFromShed would revert when called by ${cowShed}: ${(error as Error).message}`,
+    );
+  }
+
   if (!broadcast) {
     console.log("Dry-run complete: no signatures or submission.");
     return;
@@ -211,41 +289,19 @@ After setup settles, each TWAP part calls pollFunds(${scheduleId}) before settle
     );
     return { ...message, ...ethers.utils.splitSignature(signature) };
   };
-  // Authorize the CowShed to register this EOA-funded schedule.
-  // The Poller consumes the EOA's nonce when the setup bundle executes.
-  console.log(
-    `Signature 1/${signatureCount}: Poller registration authorization`,
-  );
-  const pollerNonce = await pollerSdk.nonce(funder);
-  const assertRegisterNonce = async () => {
-    if (BigInt(await pollerSdk.nonce(funder)) !== BigInt(pollerNonce)) {
-      throw new Error(
-        "Poller nonce changed before submission; rebuild and re-sign the registration",
-      );
-    }
-  };
-  const registerTypedData = pollerSdk.getRegisterTypedData({
-    chainId: CHAIN_ID,
-    schedule,
-    nonce: pollerNonce,
-    deadline: BigInt(validTo),
-  });
-  const registerSignature = await wallet._signTypedData(
-    registerTypedData.domain,
-    registerTypedData.types,
-    registerTypedData.message,
-  );
   // If needed, let the Poller pull each TWAP part from the EOA just in time.
+  let signatureNumber = 0;
   const signedPollerPermit = needsPollerPermit
-    ? await signPermit(pollerPermit, 2)
+    ? await signPermit(pollerPermit, ++signatureNumber)
     : undefined;
   const optionalPollerPermit = signedPollerPermit
     ? optionalPermitCall(SDAI, signedPollerPermit)
     : undefined;
-  // Authorize the exact CowShed setup calls embedded below.
-  const cowShedSignatureNumber = needsPollerPermit ? 3 : 2;
+  // Authorize the exact CowShed setup calls embedded below. This one signature now also
+  // authorizes the Poller registration: the shed is `proxyOf(funder)`, so the Poller
+  // treats a call from it as the funder's own.
   console.log(
-    `Signature ${cowShedSignatureNumber}/${signatureCount}: CowShed setup bundle`,
+    `Signature ${++signatureNumber}/${signatureCount}: CowShed setup bundle`,
   );
   const call = (target: string, callData: string) => ({
     target,
@@ -260,14 +316,7 @@ After setup settles, each TWAP part calls pollFunds(${scheduleId}) before settle
       ...(optionalPollerPermit
         ? [call(optionalPollerPermit.target, optionalPollerPermit.callData)]
         : []),
-      call(
-        pollerAddress,
-        pollerSdk.registerWithSignature(
-          schedule,
-          BigInt(validTo),
-          registerSignature,
-        ),
-      ),
+      call(pollerAddress, encodeRegisterFromShed(schedule)),
       call(
         SDAI,
         token.interface.encodeFunctionData("approve", [
@@ -288,19 +337,25 @@ After setup settles, each TWAP part calls pollFunds(${scheduleId}) before settle
     throw new Error("CowShed SDK returned an unexpected setup call");
   }
 
-  const setupOrderAppData = (signedPermit: SignedPermit) => {
-    const optionalSetupPermit = optionalPermitCall(SDAI, signedPermit);
+  const setupOrderAppData = (signedPermit?: SignedPermit) => {
+    const optionalSetupPermit = signedPermit
+      ? optionalPermitCall(SDAI, signedPermit)
+      : undefined;
     return {
       appCode: APP_CODE,
       metadata: {
         hooks: {
-          pre: [
-            {
-              target: optionalSetupPermit.target,
-              callData: optionalSetupPermit.callData,
-              gasLimit: "150000",
-            },
-          ],
+          ...(optionalSetupPermit
+            ? {
+                pre: [
+                  {
+                    target: optionalSetupPermit.target,
+                    callData: optionalSetupPermit.callData,
+                    gasLimit: "150000",
+                  },
+                ],
+              }
+            : {}),
           post: [
             {
               target: bundle.signedMulticall.to,
@@ -312,13 +367,17 @@ After setup settles, each TWAP part calls pollFunds(${scheduleId}) before settle
       },
     };
   };
-  const placeholderSetupPermit = {
-    ...permit(COW_VAULT_RELAYER_CONTRACT, 0n, setupNonce),
-    v: 0,
-    r: ethers.constants.HashZero,
-    s: ethers.constants.HashZero,
-  };
-  await assertRegisterNonce();
+  // A placeholder keeps the appData shape identical between the draft and final quotes,
+  // so the fee the permit must cover is the fee the order is actually signed for.
+  const placeholderSetupPermit = needsVaultPermit
+    ? {
+        ...permit(COW_VAULT_RELAYER_CONTRACT, 0n, setupNonce),
+        v: 0,
+        r: ethers.constants.HashZero,
+        s: ethers.constants.HashZero,
+      }
+    : undefined;
+  await assertScheduleKeyFree();
   const { quoteResults: draftQuote } = await sdk.getQuote(setupTrade, {
     quoteRequest: { validTo },
     appData: setupOrderAppData(placeholderSetupPermit),
@@ -329,14 +388,16 @@ After setup settles, each TWAP part calls pollFunds(${scheduleId}) before settle
   if (!setupDebit.eq(setupTrade.amount)) {
     throw new Error("Setup quote exceeds the requested debit");
   }
-  const signedSetupPermit = await signPermit(
-    permit(
-      COW_VAULT_RELAYER_CONTRACT,
-      permitValueForDebit(currentVaultAllowance, setupDebit).toBigInt(),
-      setupNonce,
-    ),
-    needsPollerPermit ? 4 : 3,
-  );
+  const signedSetupPermit = needsVaultPermit
+    ? await signPermit(
+        permit(
+          COW_VAULT_RELAYER_CONTRACT,
+          permitValueForDebit(currentVaultAllowance, setupDebit).toBigInt(),
+          setupNonce,
+        ),
+        ++signatureNumber,
+      )
+    : undefined;
   console.warn(
     `Warning: signatures 1-${signatureCount - 1} become executable when the final quote is requested.`,
   );
@@ -351,10 +412,10 @@ After setup settles, each TWAP part calls pollFunds(${scheduleId}) before settle
   ) {
     throw new Error("Final setup quote differs from the signed permit draft");
   }
-  await assertRegisterNonce();
+  await assertScheduleKeyFree();
 
   console.log(
-    `Signature ${signatureCount}/${signatureCount}: hook-aware setup order`,
+    `Signature ${++signatureNumber}/${signatureCount}: hook-aware setup order`,
   );
   const { orderId } = await postSwapOrderFromQuote();
   console.log(`Submitted: https://explorer.cow.fi/gc/orders/${orderId}`);
