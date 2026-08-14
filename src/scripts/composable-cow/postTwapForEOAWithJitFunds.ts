@@ -46,7 +46,8 @@ const TOKENS = {
 const TWAP_PARTS = 2;
 const TWAP_TIME_BETWEEN_PARTS = 120; // 2min
 const TWAP_SLIPPAGE_BPS = 1000; // 1000 bps (10%)
-const FIRST_ORDER_SLIPPAGE_BPS = 20000000000; // 200,000,000% // TODO: This was a test because I could see backend not executing the order if the sellAmount was subcent. But this should be something like 0.5%
+const FIRST_ORDER_SLIPPAGE_BPS = 50; // 50 bps (0.5%)
+const FIRST_ORDER_SELL_AMOUNT = "1"; // sell=buy order: sell 1 unit of the TWAP sell token
 
 // The TWAP handler (ComposableCoW order type). Deterministic across chains.
 const TWAP_HANDLER = "0x6cF1e9cA41f7611dEf408122793c358a3d11E5a5";
@@ -61,7 +62,10 @@ export async function run() {
 
   // v9 SDK uses a global provider adapter. The composable order types and cow-shed
   // read it via `getGlobalAdapter()`, so it must be set before using them.
-  const adapter = new EthersV5Adapter({ provider: wallet.provider, signer: wallet });
+  const adapter = new EthersV5Adapter({
+    provider: wallet.provider,
+    signer: wallet,
+  });
   setGlobalAdapter(adapter);
 
   // Initialize the SDK with the wallet
@@ -86,7 +90,14 @@ export async function run() {
   //   as opposed to what src/scripts/composable-cow/postTwapForEOA.ts does
   //
   //   Thanks to JIT funding, each part is pulled from the EOA right before it settles.
-  const firstOrderBuyAmount = BigNumber.from("1"); // sell=buy order: Buy 1 wei of sDAI
+  const firstOrderSellAmount = ethers.utils.parseUnits(
+    FIRST_ORDER_SELL_AMOUNT,
+    twapSellToken.decimals,
+  ); // sell=buy order: Sell 1 sDAI (and buy back sDAI, minus the fee)
+  const firstOrderSellAmountFormatted = ethers.utils.formatUnits(
+    firstOrderSellAmount,
+    twapSellToken.decimals,
+  );
 
   // TWAP Order:
   const fullSellAmount = ethers.utils.parseUnits("0.2", twapSellToken.decimals); // TWAP order: Sell a total of 0.2 sDAI
@@ -128,7 +139,7 @@ export async function run() {
     `TWAP sell ${fullSellAmountFormatted} ${twapSellToken.symbol} for ${twapBuyToken.symbol} in ${TWAP_PARTS} parts (funded just-in-time).
 
 The setup is done with a gasless sell=buy order with a post-hook:
-  - Sell=buy order: BUY 1 wei of ${twapSellToken.symbol} with ${twapSellToken.symbol} (sell == buy)
+  - Sell=buy order: SELL ${firstOrderSellAmountFormatted} ${twapSellToken.symbol} for ${twapSellToken.symbol} (sell == buy)
   - Order executes a post-hook (via cow-shed): 
       - Approve the Vault Relayer
       - Create the TWAP. Owner of the TWAP is cow-shed (${cowShed}).
@@ -136,7 +147,7 @@ The setup is done with a gasless sell=buy order with a post-hook:
          - Approve the ComposableCowPoller 
          - Register the JIT funding schedule on ComposableCowPoller
 
-The EOA keeps the 1 wei of ${twapSellToken.symbol}, which means that the EOA is the recipient of the first order.
+The EOA gets the ${twapSellToken.symbol} back (minus the fee), which means that the EOA is the recipient of the first order.
 The order will have the side-effects described above. 
 
 Watch Tower will detect the TWAP and create each part, which will settle and send the proceeds back to the EOA.
@@ -286,17 +297,17 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
   // Both sellToken and buyOrder matches the TWAP's sellToken
   // The post-hook that creates the TWAP.
   // It does not move the full TWAP sell amount:
-  //   - This is why the trade amount tries to be minimal (BUY 1 wei, for whatever the quote endpoint said I need to pay for gas)
-  //   - Because funds don't arrive to cow-shed, the recipient can be the EOA (this is where the 1 wei is bought)
+  //   - This is why the trade amount tries to be small (SELL 1 sDAI, out of which only the fee is actually spent)
+  //   - Because funds don't arrive to cow-shed, the recipient can be the EOA (this is where the sDAI is bought back)
   //   - The funds will be pulled in follow up order's hook (orders will automatically be created by watch-tower)
   const { quoteResults, postSwapOrderFromQuote } = await sdk.getQuote(
     {
-      kind: OrderKind.BUY,
+      kind: OrderKind.SELL,
       sellToken: twapSellToken.address,
       sellTokenDecimals: twapSellToken.decimals,
       buyToken: twapSellToken.address, // sell == buy
       buyTokenDecimals: twapSellToken.decimals,
-      amount: firstOrderBuyAmount.toString(), // buy 1 wei of sDAI
+      amount: firstOrderSellAmount.toString(), // sell 1 sDAI
       receiver: eoaTrader, // bought tokens stay with the trader; cow-shed needs no funds until each part is settled
       owner: eoaTrader,
       partiallyFillable: false,
@@ -327,9 +338,11 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
   // Print the quote
   printQuote(quoteResults);
 
-  // Calculate the maximum fee we will pay for the first order
-  const firstOrderMaxFee = BigNumber.from(
-    quoteResults.amountsAndCosts.afterSlippage.sellAmount - 1n, // deduct the 1 wei we get back
+  // Calculate the maximum fee we will pay for the first order: we sell a fixed
+  // amount and get back at least `afterSlippage.buyAmount` of the same token, so
+  // the difference is the most the order can cost us.
+  const firstOrderMaxFee = firstOrderSellAmount.sub(
+    quoteResults.amountsAndCosts.afterSlippage.buyAmount,
   );
   const firstOrderMaxFeeFormatted = ethers.utils.formatUnits(
     firstOrderMaxFee,
@@ -339,10 +352,10 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
   // Ask for confirmation before doing anything on-chain
   const confirmed = await confirm(
     `This will:
-  1. Approve the Vault Relayer to spend ${twapSellToken.symbol} (for the sell=buy order).
+  1. Approve the Vault Relayer to spend ${firstOrderSellAmountFormatted} ${twapSellToken.symbol} (for the sell=buy order).
   2. Approve the ComposableCowPoller to spend up to ${fullSellAmountFormatted} ${twapSellToken.symbol} (the full TWAP sell amount, pulled JIT).
   3. Register the JIT funding schedule on the poller (funder: your EOA, owner: cow-shed).
-  4. Place the sell=buy order, whose post-hook creates the TWAP.
+  4. Place the sell=buy order (SELL ${firstOrderSellAmountFormatted} ${twapSellToken.symbol} for ${twapSellToken.symbol}), whose post-hook creates the TWAP.
   ...
   5. [watch-tower] Detects the TWAP and creates each part, which settle and proceeds are sent back to the EOA. 
 
@@ -358,13 +371,14 @@ ok?`,
     return;
   }
 
-  // 1. Approve the Vault Relayer for the sell=buy order's sell token (the max the
-  //    sell=buy order could spend to buy 1 wei, i.e. mostly the fee).
+  // 1. Approve the Vault Relayer for the sell=buy order's sell token. The whole
+  //    sell amount is pulled at settlement, even though most of it is bought
+  //    straight back (only the fee is actually spent).
   await ensureAllowance({
     token: twapSellToken,
     owner: eoaTrader,
     spender: COW_VAULT_RELAYER_CONTRACT,
-    requiredAmount: firstOrderMaxFee,
+    requiredAmount: firstOrderSellAmount,
     label: "Vault Relayer",
   });
 
