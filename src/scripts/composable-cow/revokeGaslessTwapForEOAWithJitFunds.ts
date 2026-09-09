@@ -5,17 +5,13 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { areAddressesEqual, setGlobalAdapter } from "@cowprotocol/sdk-common";
-import { Twap } from "@cowprotocol/sdk-composable";
+import { ComposableCowPoller, Twap } from "@cowprotocol/sdk-composable";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 import { BigNumber, ethers } from "ethers";
 
 import { APP_CODE, COW_VAULT_RELAYER_CONTRACT } from "../../const";
 import { confirm, getRpcProvider, getWallet } from "../../utils";
 import { getCowShedSdk } from "./cowShed";
-import {
-  encodeRevokeFromShed,
-  getComposableCowPollerContract,
-} from "../../contracts/composable-cow-poller";
 import {
   getPermitTokenContract,
   optionalPermitCall,
@@ -44,7 +40,7 @@ export async function run(): Promise<void> {
 
   const adapter = new EthersV5Adapter({ provider, signer: wallet });
   setGlobalAdapter(adapter);
-  const poller = getComposableCowPollerContract(pollerAddress, provider);
+  const poller = new ComposableCowPoller(pollerAddress);
   const cowShedSdk = getCowShedSdk(adapter);
   const cowShed = cowShedSdk.getCowShedAccount(CHAIN_ID, funder);
   const token = getPermitTokenContract(
@@ -52,8 +48,8 @@ export async function run(): Promise<void> {
     new ethers.VoidSigner(funder, provider),
   );
   const [schedule, composableCow] = await Promise.all([
-    poller.schedules(scheduleId),
-    poller.COMPOSABLE_COW(),
+    poller.getSchedule(scheduleId, provider),
+    poller.getComposableCowAddress(provider),
   ]);
   if (
     !areAddressesEqual(composableCow, COMPOSABLE_COW_CONTRACT_ADDRESS[CHAIN_ID])
@@ -62,13 +58,8 @@ export async function run(): Promise<void> {
       "Poller is configured for a different ComposableCoW contract",
     );
   }
-  if (schedule.funder === ethers.constants.AddressZero) {
-    throw new Error("Poller schedule does not exist");
-  }
-  // Revocation leaves the funder as a used-key tombstone but clears the handler, so a
-  // zero handler means this key was already revoked.
   if (schedule.handler === ethers.constants.AddressZero) {
-    throw new Error("Poller schedule was already revoked");
+    throw new Error("Poller schedule is not active");
   }
   if (!areAddressesEqual(schedule.funder, funder)) {
     throw new Error("The configured funder does not own the Poller schedule");
@@ -110,12 +101,14 @@ export async function run(): Promise<void> {
     token.decimals(),
     token.allowance(funder, COW_VAULT_RELAYER_CONTRACT),
   ]);
-  // Nothing to snapshot: revocation is authorized by the CowShed being `proxyOf(funder)`,
-  // so there is no signature that an intervening Poller action could invalidate.
+  // The revoke bundle encodes the current auth epoch, so re-check it before submission.
   const assertRevokeReplaySafe = async () => {
-    const { handler } = await poller.schedules(scheduleId);
-    if (handler === ethers.constants.AddressZero) {
-      throw new Error("Poller schedule was revoked before submission");
+    const current = await poller.getSchedule(scheduleId, provider);
+    if (
+      current.handler === ethers.constants.AddressZero ||
+      !BigNumber.from(current.authEpoch).eq(schedule.authEpoch)
+    ) {
+      throw new Error("Poller schedule changed before submission");
     }
   };
 
@@ -135,12 +128,7 @@ export async function run(): Promise<void> {
     calls: [
       call(
         pollerAddress,
-        encodeRevokeFromShed({
-          handler: schedule.handler,
-          funder,
-          owner: cowShed,
-          salt: schedule.salt,
-        }),
+        poller.encodeRevokeFromShed(schedule),
       ),
       call(
         COMPOSABLE_COW_CONTRACT_ADDRESS[CHAIN_ID],

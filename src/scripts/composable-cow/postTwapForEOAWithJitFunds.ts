@@ -8,7 +8,11 @@ import {
   COMPOSABLE_COW_CONTRACT_ADDRESS,
   OrderBookApi,
 } from "@cowprotocol/cow-sdk";
-import { Twap } from "@cowprotocol/sdk-composable";
+import {
+  ComposableCowPollerSdk,
+  TWAP_ADDRESS,
+  Twap,
+} from "@cowprotocol/sdk-composable";
 import { setGlobalAdapter } from "@cowprotocol/sdk-common";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 
@@ -22,11 +26,6 @@ import {
   printQuote,
 } from "../../utils";
 import { getErc20Contract } from "../../contracts/erc20";
-import {
-  encodePollFunds,
-  getComposableCowPollerContract,
-  scheduleId as derivePollerScheduleId,
-} from "../../contracts/composable-cow-poller";
 import { getCowShedSdk } from "./cowShed";
 
 const DEFAULT_GAS_LIMIT = 500_000n;
@@ -49,8 +48,6 @@ const TWAP_SLIPPAGE_BPS = 1000; // 1000 bps (10%)
 const FIRST_ORDER_SLIPPAGE_BPS = 50; // 50 bps (0.5%)
 const FIRST_ORDER_SELL_AMOUNT = "1"; // sell=buy order: sell 1 unit of the TWAP sell token
 
-// The TWAP handler (ComposableCoW order type). Deterministic across chains.
-const TWAP_HANDLER = "0x6cF1e9cA41f7611dEf408122793c358a3d11E5a5";
 // Gas budget for the pollFunds pre-hook on each part (SLOADs + getTradeableOrder + transferFrom).
 const TOPUP_HOOK_GAS_LIMIT = "350000";
 
@@ -121,13 +118,18 @@ export async function run() {
   // `pollFunds(id)` as a pre-hook inside the TWAP's own appData: the order's `ctx`
   // contains the appData hash, so keying on `ctx` would be circular, but `id`
   // is not. We choose the salt, so we can compute `id` before the appData.
-  const poller = getComposableCowPollerContract(
-    COMPOSABLE_COW_POLLER_ADDRESS,
-    wallet,
+  const pollerSdk = new ComposableCowPollerSdk(
+    {
+      chainId: CHAIN_ID,
+      pollerAddress: COMPOSABLE_COW_POLLER_ADDRESS,
+      signer: wallet,
+    },
+    adapter,
   );
+  const { poller } = pollerSdk;
   const twapSalt = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-  const id: string = derivePollerScheduleId({
-    handler: TWAP_HANDLER,
+  const id = poller.getScheduleId({
+    handler: TWAP_ADDRESS,
     funder: eoaTrader,
     owner: cowShed,
     salt: twapSalt,
@@ -158,7 +160,7 @@ sell amount from the EOA into cow-shed right before it settles. No external keep
 
   // Generate app data for the TWAP, embedding a pre-hook with the polling
   const metadataApi = new MetadataApi();
-  const pollFundsCalldata = encodePollFunds(id);
+  const pollFundsCalldata = poller.encodePollFunds(id);
   const twapAppData = await metadataApi.generateAppDataDoc({
     appCode: APP_CODE,
     environment: "prod",
@@ -236,11 +238,11 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
   // Sanity: the handler/salt must be exactly what we derived `id` from, so the
   // `pollFunds(id)` hook baked into the appData resolves to this very schedule.
   if (
-    handler.toLowerCase() !== TWAP_HANDLER.toLowerCase() ||
+    handler.toLowerCase() !== TWAP_ADDRESS.toLowerCase() ||
     salt.toLowerCase() !== twapSalt.toLowerCase()
   ) {
     throw new Error(
-      `TWAP handler/salt mismatch: handler=${handler} salt=${salt} (expected handler=${TWAP_HANDLER} salt=${twapSalt})`,
+      `TWAP handler/salt mismatch: handler=${handler} salt=${salt} (expected handler=${TWAP_ADDRESS} salt=${twapSalt})`,
     );
   }
 
@@ -392,22 +394,23 @@ ok?`,
     label: "ComposableCowPoller",
   });
 
-  // 3. Register the JIT funding schedule (only the funder may register).
-  // NOTE: We could make the poller registration also accept a signature.
-  // This way, this part can always be chained as part of the first-order post-hook and we don't need this transaction
-  const existing = await poller.schedules(id);
-  if (existing.funder !== ethers.constants.AddressZero) {
+  // 3. Register directly from the funder's signer in this baseline variant.
+  const existing = await poller.getSchedule(id);
+  if (existing.handler !== ethers.constants.AddressZero) {
     console.log(
       `Schedule already registered for id ${id} (funder: ${existing.funder}). Skipping register.`,
     );
   } else {
     console.log("Registering JIT funding schedule on the poller...");
-    const registerTx = await poller.register({
-      handler,
-      funder: eoaTrader,
-      owner: cowShed,
-      salt,
-      staticInput,
+    const registerTx = await pollerSdk.register({
+      schedule: {
+        handler,
+        authEpoch: existing.authEpoch,
+        funder: eoaTrader,
+        owner: cowShed,
+        salt,
+        staticInput,
+      },
     });
     console.log("Register tx:", getExplorerUrl(CHAIN_ID, registerTx.hash));
     await registerTx.wait();
