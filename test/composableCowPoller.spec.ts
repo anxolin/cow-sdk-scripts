@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import { SupportedChainId } from "@cowprotocol/cow-sdk";
-import { COW_SHED_712_TYPES } from "@cowprotocol/sdk-cow-shed";
+import {
+  COW_SHED_2_1_0_VERSION,
+  COW_SHED_712_TYPES,
+} from "@cowprotocol/sdk-cow-shed";
+import {
+  ComposableCowPoller,
+  type ComposableCowPollerSchedule,
+} from "@cowprotocol/sdk-composable";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 import { ethers } from "ethers";
 
-import {
-  ComposableCowPoller,
-  PollerSchedule,
-} from "../src/scripts/composable-cow/composableCowPoller";
 import {
   assertPermitValid,
   MULTICALL3,
@@ -17,7 +20,6 @@ import {
 import {
   COW_SHED_FACTORY_ADDRESS,
   COW_SHED_IMPLEMENTATION_ADDRESS,
-  COW_SHED_VERSION,
   getPollerCowShedSdk,
 } from "../src/scripts/composable-cow/pollerCowShed";
 
@@ -27,7 +29,7 @@ const FUNDER = "0x3333333333333333333333333333333333333333";
 const OWNER = "0x4444444444444444444444444444444444444444";
 const TOKEN = "0x5555555555555555555555555555555555555555";
 const SALT = ethers.utils.hexZeroPad("0x01", 32);
-const schedule: PollerSchedule = {
+const schedule: ComposableCowPollerSchedule = {
   handler: HANDLER,
   authEpoch: 7,
   funder: FUNDER,
@@ -35,10 +37,11 @@ const schedule: PollerSchedule = {
   salt: SALT,
   staticInput: "0x1234",
 };
-const poller = new ComposableCowPoller(
-  POLLER,
-  new ethers.providers.JsonRpcProvider(),
-);
+const poller = new ComposableCowPoller(POLLER);
+const pollerInterface = new ethers.utils.Interface([
+  "function registerFromShed((address handler,uint96 authEpoch,address funder,address owner,bytes32 salt,bytes staticInput) schedule) returns (bytes32)",
+  "function revokeFromShed(address handler,address funder,address owner,bytes32 salt,uint96 authEpoch) returns (bytes32)",
+]);
 
 async function main() {
   const cowShedProvider = new ethers.providers.JsonRpcProvider();
@@ -53,7 +56,7 @@ async function main() {
       signer: cowShedSigner,
     }),
   );
-  assert.equal(COW_SHED_VERSION, "2.1.0");
+  assert.equal(COW_SHED_2_1_0_VERSION, "2.1.0");
   assert.equal(
     COW_SHED_FACTORY_ADDRESS.toLowerCase(),
     "0x5e284e80f3bd6a7d80a8500d9c49878028110848",
@@ -62,7 +65,7 @@ async function main() {
     COW_SHED_IMPLEMENTATION_ADDRESS.toLowerCase(),
     "0xf0d400089d5b9faca64e3422ad6614546587cffb",
   );
-  assert.equal(cowShedSdk.version, COW_SHED_VERSION);
+  assert.equal(cowShedSdk.version, COW_SHED_2_1_0_VERSION);
   assert.equal(
     cowShedSdk
       .getCowShedAccount(SupportedChainId.GNOSIS_CHAIN, FUNDER)
@@ -103,7 +106,7 @@ async function main() {
     ethers.utils.verifyTypedData(
       {
         name: "COWShed",
-        version: COW_SHED_VERSION,
+        version: COW_SHED_2_1_0_VERSION,
         chainId: SupportedChainId.GNOSIS_CHAIN,
         verifyingContract: signedCowShedCall.cowShedAccount,
       },
@@ -126,7 +129,7 @@ async function main() {
   );
   assert.equal(poller.getScheduleId(schedule), expectedScheduleId);
 
-  const registerCall = poller.contractInterface.parseTransaction({
+  const registerCall = pollerInterface.parseTransaction({
     data: poller.encodeRegisterFromShed(schedule),
   });
   assert.equal(registerCall.name, "registerFromShed");
@@ -135,7 +138,7 @@ async function main() {
   assert.equal(registerCall.args.schedule.funder, FUNDER);
   assert.equal(registerCall.args.schedule.owner, OWNER);
 
-  const revokeCall = poller.contractInterface.parseTransaction({
+  const revokeCall = pollerInterface.parseTransaction({
     data: poller.encodeRevokeFromShed(schedule),
   });
   assert.equal(revokeCall.name, "revokeFromShed");
@@ -191,7 +194,7 @@ async function main() {
   assert.equal(simulatedArgs?.[0], FUNDER);
   assert.equal(simulatedArgs?.[1], OWNER);
 
-  console.log("ComposableCowPoller contract adapter tests passed");
+  console.log("ComposableCowPoller SDK integration tests passed");
 }
 
 void main();

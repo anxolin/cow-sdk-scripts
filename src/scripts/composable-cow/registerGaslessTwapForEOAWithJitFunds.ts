@@ -9,13 +9,16 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { areAddressesEqual, setGlobalAdapter } from "@cowprotocol/sdk-common";
-import { TWAP_ADDRESS, Twap } from "@cowprotocol/sdk-composable";
+import {
+  ComposableCowPoller,
+  TWAP_ADDRESS,
+  Twap,
+} from "@cowprotocol/sdk-composable";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 import { BigNumber, ethers } from "ethers";
 
 import { APP_CODE, COW_VAULT_RELAYER_CONTRACT } from "../../const";
 import { confirm, getRpcProvider, getWallet } from "../../utils";
-import { ComposableCowPoller } from "./composableCowPoller";
 import {
   COW_SHED_FACTORY_ADDRESS,
   getPollerCowShedSdk,
@@ -48,7 +51,7 @@ export async function run(): Promise<void> {
 
   const adapter = new EthersV5Adapter({ provider, signer: wallet });
   setGlobalAdapter(adapter);
-  const poller = new ComposableCowPoller(pollerAddress, provider);
+  const poller = new ComposableCowPoller(pollerAddress);
   const token = getPermitTokenContract(
     SDAI,
     new ethers.VoidSigner(funder, provider),

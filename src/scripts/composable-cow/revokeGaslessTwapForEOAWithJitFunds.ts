@@ -7,16 +7,16 @@ import {
   TradingSdk,
 } from "@cowprotocol/cow-sdk";
 import { areAddressesEqual, setGlobalAdapter } from "@cowprotocol/sdk-common";
-import { Twap } from "@cowprotocol/sdk-composable";
+import {
+  ComposableCowPoller,
+  type ComposableCowPollerSchedule,
+  Twap,
+} from "@cowprotocol/sdk-composable";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 import { BigNumber, ethers } from "ethers";
 
 import { APP_CODE, COW_VAULT_RELAYER_CONTRACT } from "../../const";
 import { confirm, getRpcProvider, getWallet } from "../../utils";
-import {
-  ComposableCowPoller,
-  PollerSchedule,
-} from "./composableCowPoller";
 import {
   COW_SHED_FACTORY_ADDRESS,
   getPollerCowShedSdk,
@@ -50,7 +50,7 @@ export async function run(): Promise<void> {
 
   const adapter = new EthersV5Adapter({ provider, signer: wallet });
   setGlobalAdapter(adapter);
-  const poller = new ComposableCowPoller(pollerAddress, provider);
+  const poller = new ComposableCowPoller(pollerAddress);
   const cowShedSdk = getPollerCowShedSdk(adapter);
   const cowShed = cowShedSdk.getCowShedAccount(CHAIN_ID, funder);
   const token = getPermitTokenContract(
@@ -287,7 +287,10 @@ export async function run(): Promise<void> {
   );
 }
 
-function sameSchedule(left: PollerSchedule, right: PollerSchedule): boolean {
+function sameSchedule(
+  left: ComposableCowPollerSchedule,
+  right: ComposableCowPollerSchedule,
+): boolean {
   return (
     areAddressesEqual(left.handler, right.handler) &&
     BigNumber.from(left.authEpoch).eq(right.authEpoch) &&
