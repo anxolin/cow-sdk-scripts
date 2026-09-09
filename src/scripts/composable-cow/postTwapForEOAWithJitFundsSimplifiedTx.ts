@@ -8,7 +8,11 @@ import {
   COMPOSABLE_COW_CONTRACT_ADDRESS,
   OrderBookApi,
 } from "@cowprotocol/cow-sdk";
-import { Twap } from "@cowprotocol/sdk-composable";
+import {
+  ComposableCowPoller,
+  TWAP_ADDRESS,
+  Twap,
+} from "@cowprotocol/sdk-composable";
 import { areAddressesEqual, setGlobalAdapter } from "@cowprotocol/sdk-common";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 
@@ -21,12 +25,6 @@ import {
   getWallet,
 } from "../../utils";
 import { getErc20Contract } from "../../contracts/erc20";
-import {
-  encodePollFunds,
-  encodeRegisterFromShed,
-  getComposableCowPollerContract,
-  scheduleId as derivePollerScheduleId,
-} from "../../contracts/composable-cow-poller";
 import { getCowShedSdk } from "./cowShed";
 
 interface Token {
@@ -45,8 +43,6 @@ const TWAP_PARTS = 2;
 const TWAP_TIME_BETWEEN_PARTS = 120; // 2min
 const TWAP_SLIPPAGE_BPS = 1000; // 1000 bps (10%)
 
-// The TWAP handler (ComposableCoW order type). Deterministic across chains.
-const TWAP_HANDLER = "0x6cF1e9cA41f7611dEf408122793c358a3d11E5a5";
 // Gas budget for the pollFunds pre-hook on each part (SLOADs + getTradeableOrder + transferFrom).
 const TOPUP_HOOK_GAS_LIMIT = "350000";
 
@@ -105,21 +101,24 @@ export async function run() {
 
   // The poller schedule key is derived from (funder, handler, owner, salt).`pollFunds(id)`
   // The id is used as a pre-hook inside the TWAP's own appData
-  const poller = getComposableCowPollerContract(
-    COMPOSABLE_COW_POLLER_ADDRESS,
-    wallet,
-  );
+  const poller = new ComposableCowPoller(COMPOSABLE_COW_POLLER_ADDRESS);
   const twapSalt = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-  const id: string = derivePollerScheduleId({
-    handler: TWAP_HANDLER,
+  const id = poller.getScheduleId({
+    handler: TWAP_ADDRESS,
     funder: eoaTrader,
     owner: cowShed,
     salt: twapSalt,
   });
   console.log("Poller schedule id:", id);
+  const [storedSchedule, pollerShedFactory] = await Promise.all([
+    poller.getSchedule(id),
+    poller.getCowShedFactoryAddress(),
+  ]);
+  if (storedSchedule.handler !== ethers.constants.AddressZero) {
+    throw new Error(`Schedule ${id} is already active`);
+  }
 
   // Verify that the shed matches the poller.factory.proxyOf(eoaTrader)
-  const pollerShedFactory: string = await poller.COW_SHED_FACTORY();
   const shedFromPollerFactory: string = await new ethers.Contract(
     pollerShedFactory,
     ["function proxyOf(address owner) view returns (address)"],
@@ -148,7 +147,7 @@ sell amount from the EOA into cow-shed right before it settles. No external keep
 
   // Generate app data for the TWAP, embedding a pre-hook with the polling
   const metadataApi = new MetadataApi();
-  const pollFundsCalldata = encodePollFunds(id);
+  const pollFundsCalldata = poller.encodePollFunds(id);
   const twapAppData = await metadataApi.generateAppDataDoc({
     appCode: APP_CODE,
     environment: "prod",
@@ -222,11 +221,11 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
   // Sanity: the handler/salt must be exactly what we derived `id` from, so the
   // `pollFunds(id)` hook baked into the appData resolves to this very schedule.
   if (
-    handler.toLowerCase() !== TWAP_HANDLER.toLowerCase() ||
+    handler.toLowerCase() !== TWAP_ADDRESS.toLowerCase() ||
     salt.toLowerCase() !== twapSalt.toLowerCase()
   ) {
     throw new Error(
-      `TWAP handler/salt mismatch: handler=${handler} salt=${salt} (expected handler=${TWAP_HANDLER} salt=${twapSalt})`,
+      `TWAP handler/salt mismatch: handler=${handler} salt=${salt} (expected handler=${TWAP_ADDRESS} salt=${twapSalt})`,
     );
   }
 
@@ -244,10 +243,11 @@ TWAP buy amount total: ~${fmt(expectedTwapBuyAmount)} expected, ${fmt(twapBuyAmo
   // shed (owner, and what the poller checks the caller against).
   const schedule = {
     ...twap.leaf,
+    authEpoch: storedSchedule.authEpoch,
     funder: eoaTrader,
     owner: cowShed,
   };
-  const registerFromShedCalldata = encodeRegisterFromShed(schedule);
+  const registerFromShedCalldata = poller.encodeRegisterFromShed(schedule);
 
   const approveSellTokenCalldata =
     twapSellToken.contract.interface.encodeFunctionData("approve", [
@@ -321,12 +321,12 @@ ok?`,
     label: "ComposableCowPoller",
   });
 
-  // Schedule keys are single-use, so check ours survived the approval.
-  const existing = await poller.schedules(id);
-  if (existing.funder !== ethers.constants.AddressZero) {
-    throw new Error(
-      `Schedule key ${id} is already used (funder: ${existing.funder}); re-run to build one with a fresh salt`,
-    );
+  const current = await poller.getSchedule(id);
+  if (
+    current.handler !== ethers.constants.AddressZero ||
+    !BigNumber.from(current.authEpoch).eq(schedule.authEpoch)
+  ) {
+    throw new Error(`Schedule ${id} changed before submission`);
   }
 
   // 2. Send the bundle. The gas limit is left to the provider so that a bundle which
@@ -344,8 +344,8 @@ ok?`,
   );
 
   // The bundle is all-or-nothing, so a registered schedule means the TWAP exists too.
-  const registered = await poller.schedules(id);
-  if (registered.funder === ethers.constants.AddressZero) {
+  const registered = await poller.getSchedule(id);
+  if (registered.handler === ethers.constants.AddressZero) {
     throw new Error(`Schedule ${id} is still not registered after ${tx.hash}`);
   }
   console.log(
