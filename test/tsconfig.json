@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".."
+  },
+  "include": [
+    "../src/scripts/composable-cow/cowShed.ts",
+    "../src/scripts/composable-cow/optionalPermit.ts",
+    "../src/scripts/composable-cow/registerGaslessTwapForEOAWithJitFunds.ts",
+    "../src/scripts/composable-cow/revokeGaslessTwapForEOAWithJitFunds.ts",
+    "composableCowPoller.spec.ts"
+  ]
+}
