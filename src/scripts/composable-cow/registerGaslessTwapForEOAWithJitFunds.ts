@@ -58,21 +58,15 @@ export async function run(): Promise<void> {
   );
   const cowShedSdk = getPollerCowShedSdk(adapter);
   const cowShed = cowShedSdk.getCowShedAccount(CHAIN_ID, funder);
-  const [decimals, composableCow, pollerCowShedFactory] = await Promise.all([
+  const [decimals, composableCow] = await Promise.all([
     token.decimals(),
     poller.getComposableCowAddress(),
-    poller.getCowShedFactoryAddress(),
   ]);
   if (
     !areAddressesEqual(composableCow, COMPOSABLE_COW_CONTRACT_ADDRESS[CHAIN_ID])
   ) {
     throw new Error(
       "Poller is configured for a different ComposableCoW contract",
-    );
-  }
-  if (!areAddressesEqual(pollerCowShedFactory, COW_SHED_FACTORY_ADDRESS)) {
-    throw new Error(
-      "Poller COW_SHED_FACTORY does not match this script's CowShed factory",
     );
   }
 

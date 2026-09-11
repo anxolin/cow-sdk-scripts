@@ -57,21 +57,15 @@ export async function run(): Promise<void> {
     SDAI,
     new ethers.VoidSigner(funder, provider),
   );
-  const [schedule, composableCow, pollerCowShedFactory] = await Promise.all([
+  const [schedule, composableCow] = await Promise.all([
     poller.getSchedule(scheduleId),
     poller.getComposableCowAddress(),
-    poller.getCowShedFactoryAddress(),
   ]);
   if (
     !areAddressesEqual(composableCow, COMPOSABLE_COW_CONTRACT_ADDRESS[CHAIN_ID])
   ) {
     throw new Error(
       "Poller is configured for a different ComposableCoW contract",
-    );
-  }
-  if (!areAddressesEqual(pollerCowShedFactory, COW_SHED_FACTORY_ADDRESS)) {
-    throw new Error(
-      "Poller COW_SHED_FACTORY does not match this script's CowShed factory",
     );
   }
   if (areAddressesEqual(schedule.funder, ethers.constants.AddressZero)) {

@@ -8,7 +8,7 @@ import {
   COMPOSABLE_COW_CONTRACT_ADDRESS,
   OrderBookApi,
 } from "@cowprotocol/cow-sdk";
-import { Twap } from "@cowprotocol/sdk-composable";
+import { ComposableCowPoller, Twap } from "@cowprotocol/sdk-composable";
 import { setGlobalAdapter } from "@cowprotocol/sdk-common";
 import { EthersV5Adapter } from "@cowprotocol/sdk-ethers-v5-adapter";
 
@@ -114,12 +114,12 @@ export async function run() {
     wallet,
   );
   const twapSalt = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-  const id: string = await poller.scheduleId(
-    eoaTrader,
-    TWAP_HANDLER,
-    cowShed,
-    twapSalt,
-  );
+  const id = new ComposableCowPoller(COMPOSABLE_COW_POLLER_ADDRESS).getScheduleId({
+    funder: eoaTrader,
+    handler: TWAP_HANDLER,
+    owner: cowShed,
+    salt: twapSalt,
+  });
   console.log("Poller schedule id:", id);
 
   // Describe the flow
